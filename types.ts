@@ -4,7 +4,8 @@ export enum UserRole {
   SUPERVISOR = 'Supervisor',
   SELLER = 'Vendedor',
   BUYER = 'Comprador',
-  DRIVER = 'Motorista'
+  DRIVER = 'Motorista',
+  GROUP_MANAGER = 'Gestor de Grupo',
 }
 
 export interface User {
@@ -13,6 +14,8 @@ export interface User {
   email: string;
   role: UserRole;
   avatarUrl: string;
+  companyId: string;
+  companyName?: string; // For display purposes
 }
 
 export enum ProductKind {
@@ -42,6 +45,7 @@ export interface Product {
   packaging: Packaging[];
   imageUrl: string;
   warehouseId: string;
+  warehouse?: Warehouse;
   stockLevel?: number; // Only for goods
   lot?: string; // Only for goods
   expiryDate?: string; // Only for goods
@@ -51,10 +55,17 @@ export interface CartItem extends Product {
     quantity: number;
 }
 
+export enum WarehouseType {
+  STORE = 'Armazém da Loja',
+  GENERAL = 'Armazém Geral',
+}
+
 export interface Warehouse {
   id: string;
   name: string;
   location: string;
+  type: WarehouseType;
+  companyId: string;
 }
 
 export interface Order {
@@ -84,10 +95,16 @@ export interface Delivery {
     currentLocation: { lat: number; lng: number };
 }
 
-export interface Company {
+export interface DeliveryCompany {
     id: string;
     name: string;
     drivers: User[];
+}
+
+export interface Company {
+    id: string;
+    name: string;
+    parentId: string | null;
 }
 
 // API and Pagination Types

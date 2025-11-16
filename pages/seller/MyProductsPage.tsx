@@ -46,7 +46,7 @@ export const MyProductsPage: React.FC = () => {
             if(!user) return;
             setLoading(true);
             const limit = 10;
-            const data = await mockApi.getSellerProducts(user.id, { query: searchQuery }, currentPage, limit);
+            const data = await mockApi.getSellerProducts(user, { query: searchQuery }, currentPage, limit);
             setProducts(data.data);
             setTotalPages(Math.ceil(data.total / limit));
             setLoading(false);
@@ -146,6 +146,7 @@ export const MyProductsPage: React.FC = () => {
                 onClose={handleModalClose}
                 onSave={handleModalSave}
                 product={editingProduct}
+                user={user}
             />
         </>
     );

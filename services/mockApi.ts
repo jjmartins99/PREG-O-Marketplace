@@ -1,28 +1,45 @@
-import { User, UserRole, Product, ProductKind, Delivery, Company, Warehouse, PaginatedResponse, ProductFilters, UserFilters } from '../types';
+import { User, UserRole, Product, ProductKind, Delivery, DeliveryCompany, Company, Warehouse, WarehouseType, PaginatedResponse, ProductFilters, UserFilters } from '../types';
 
-const users: User[] = [
-  { id: '1', name: 'Admin User', email: 'admin@pregao.com', role: UserRole.ADMIN, avatarUrl: 'https://i.pravatar.cc/150?u=admin' },
-  { id: '2', name: 'Seller One', email: 'seller1@pregao.com', role: UserRole.SELLER, avatarUrl: 'https://i.pravatar.cc/150?u=seller1' },
-  { id: '3', name: 'Buyer One', email: 'buyer1@pregao.com', role: UserRole.BUYER, avatarUrl: 'https://i.pravatar.cc/150?u=buyer1' },
-  { id: '4', name: 'Marco Silva', email: 'driver1@pregao.com', role: UserRole.DRIVER, avatarUrl: 'https://i.pravatar.cc/150?u=driver1' },
-  { id: '5', name: 'Ana Pereira', email: 'driver2@pregao.com', role: UserRole.DRIVER, avatarUrl: 'https://i.pravatar.cc/150?u=driver2' },
-  { id: '6', name: 'Gerente Loja', email: 'manager@pregao.com', role: UserRole.MANAGER, avatarUrl: 'https://i.pravatar.cc/150?u=manager' },
-  { id: '7', name: 'Supervisor Logistica', email: 'supervisor@pregao.com', role: UserRole.SUPERVISOR, avatarUrl: 'https://i.pravatar.cc/150?u=supervisor' },
-  
+const companies: Company[] = [
+    { id: 'c-main', name: 'PREGÃO Casa Mãe', parentId: null },
+    { id: 'c-branch-1', name: 'Filial Luanda Sul', parentId: 'c-main' },
+    { id: 'c-branch-2', name: 'Filial Talatona', parentId: 'c-main' },
+    { id: 'c-branch-1-sub', name: 'Ponto de Venda - Shopping Avenida', parentId: 'c-branch-1' },
 ];
 
-const warehouses: Warehouse[] = [
-    { id: 'wh1', name: 'Armazém Principal', location: 'Luanda' },
-    { id: 'wh2', name: 'Filial Benguela', location: 'Benguela' },
+let warehouses: Warehouse[] = [
+    // Main company warehouses
+    { id: 'wh-main-general', name: 'Armazém Geral (Sede)', location: 'Luanda', type: WarehouseType.GENERAL, companyId: 'c-main' },
+    { id: 'wh-main-store', name: 'Armazém da Loja (Sede)', location: 'Luanda', type: WarehouseType.STORE, companyId: 'c-main' },
+    // Branch 1 warehouses
+    { id: 'wh-b1-general', name: 'Armazém Geral (Luanda Sul)', location: 'Luanda Sul', type: WarehouseType.GENERAL, companyId: 'c-branch-1' },
+    { id: 'wh-b1-store', name: 'Armazém da Loja (Luanda Sul)', location: 'Luanda Sul', type: WarehouseType.STORE, companyId: 'c-branch-1' },
+    // Branch 2 warehouses
+    { id: 'wh-b2-store', name: 'Armazém da Loja (Talatona)', location: 'Talatona', type: WarehouseType.STORE, companyId: 'c-branch-2' },
+     // Sub-branch warehouse
+    { id: 'wh-b1s-store', name: 'Armazém da Loja (Shopping Avenida)', location: 'Shopping Avenida', type: WarehouseType.STORE, companyId: 'c-branch-1-sub' },
+];
+
+const users: User[] = [
+  { id: '1', name: 'Admin User', email: 'admin@pregao.com', role: UserRole.ADMIN, avatarUrl: 'https://i.pravatar.cc/150?u=admin', companyId: 'c-main' },
+  { id: '2', name: 'Seller One', email: 'seller1@pregao.com', role: UserRole.SELLER, avatarUrl: 'https://i.pravatar.cc/150?u=seller1', companyId: 'c-branch-1' },
+  { id: '3', name: 'Buyer One', email: 'buyer1@pregao.com', role: UserRole.BUYER, avatarUrl: 'https://i.pravatar.cc/150?u=buyer1', companyId: 'c-main' },
+  { id: '4', name: 'Marco Silva', email: 'driver1@pregao.com', role: UserRole.DRIVER, avatarUrl: 'https://i.pravatar.cc/150?u=driver1', companyId: 'c-main' },
+  { id: '5', name: 'Ana Pereira', email: 'driver2@pregao.com', role: UserRole.DRIVER, avatarUrl: 'https://i.pravatar.cc/150?u=driver2', companyId: 'c-main' },
+  { id: '6', name: 'Gerente Loja', email: 'manager@pregao.com', role: UserRole.MANAGER, avatarUrl: 'https://i.pravatar.cc/150?u=manager', companyId: 'c-branch-2' },
+  { id: '7', name: 'Supervisor Logistica', email: 'supervisor@pregao.com', role: UserRole.SUPERVISOR, avatarUrl: 'https://i.pravatar.cc/150?u=supervisor', companyId: 'c-main' },
+  { id: '8', name: 'Gestor de Grupo', email: 'groupmanager@pregao.com', role: UserRole.GROUP_MANAGER, avatarUrl: 'https://i.pravatar.cc/150?u=groupmanager', companyId: 'c-main' },
 ];
 
 let products: Product[] = [
-  { id: 'p1', name: 'Arroz Tio Lucas 25kg', description: 'Arroz agulha de alta qualidade.', sku: 'PROD001', price: 15000, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [{id: 'pkg1', name: 'Fardo', unit: 'FAR', conversionFactor: 4, price: 58000}], imageUrl: 'https://picsum.photos/seed/arroz/400/300', warehouseId: 'wh1', stockLevel: 120, lot: 'LOTE2024A', expiryDate: '2025-12-31' },
-  { id: 'p2', name: 'Óleo Fula 1L', description: 'Óleo vegetal para cozinha.', sku: 'PROD002', price: 1200, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [{id: 'pkg2', name: 'Caixa', unit: 'CX', conversionFactor: 12, price: 14000}], imageUrl: 'https://picsum.photos/seed/oleo/400/300', warehouseId: 'wh1', stockLevel: 300, lot: 'LOTE2024B', expiryDate: '2026-06-30' },
-  { id: 'p3', name: 'Serviço de Instalação', description: 'Instalação de equipamento standard (2 horas).', sku: 'SERV001', price: 25000, kind: ProductKind.SERVICE, trackStock: false, unit: 'HR', packaging: [], imageUrl: 'https://picsum.photos/seed/servico/400/300', warehouseId: 'wh1' },
-  { id: 'p4', name: 'Sumo Compal 1L', description: 'Sumo de Laranja natural.', sku: 'PROD003', price: 900, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [{id: 'pkg3', name: 'Grade', unit: 'GRD', conversionFactor: 6, price: 5200}], imageUrl: 'https://picsum.photos/seed/sumo/400/300', warehouseId: 'wh2', stockLevel: 250, lot: 'LOTE2024C', expiryDate: '2025-03-01' },
-  { id: 'p5', name: 'Cimento Portland 50kg', description: 'Cimento para construção civil.', sku: 'PROD004', price: 4500, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [], imageUrl: 'https://picsum.photos/seed/cimento/400/300', warehouseId: 'wh2', stockLevel: 500 },
-  { id: 'p6', name: 'Consultoria de Negócios', description: 'Sessão de consultoria estratégica (1 hora).', sku: 'SERV002', price: 50000, kind: ProductKind.SERVICE, trackStock: false, unit: 'HR', packaging: [], imageUrl: 'https://picsum.photos/seed/consultoria/400/300', warehouseId: 'wh1' },
+  { id: 'p1', name: 'Arroz Tio Lucas 25kg', description: 'Arroz agulha de alta qualidade.', sku: 'PROD001', price: 15000, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [{id: 'pkg1', name: 'Fardo', unit: 'FAR', conversionFactor: 4, price: 58000}], imageUrl: 'https://picsum.photos/seed/arroz/400/300', warehouseId: 'wh-main-general', stockLevel: 120, lot: 'LOTE2024A', expiryDate: '2025-12-31' },
+  { id: 'p2', name: 'Óleo Fula 1L', description: 'Óleo vegetal para cozinha.', sku: 'PROD002', price: 1200, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [{id: 'pkg2', name: 'Caixa', unit: 'CX', conversionFactor: 12, price: 14000}], imageUrl: 'https://picsum.photos/seed/oleo/400/300', warehouseId: 'wh-main-general', stockLevel: 300, lot: 'LOTE2024B', expiryDate: '2026-06-30' },
+  { id: 'p3', name: 'Serviço de Instalação', description: 'Instalação de equipamento standard (2 horas).', sku: 'SERV001', price: 25000, kind: ProductKind.SERVICE, trackStock: false, unit: 'HR', packaging: [], imageUrl: 'https://picsum.photos/seed/servico/400/300', warehouseId: 'wh-main-general' },
+  { id: 'p4', name: 'Sumo Compal 1L', description: 'Sumo de Laranja natural.', sku: 'PROD003', price: 900, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [{id: 'pkg3', name: 'Grade', unit: 'GRD', conversionFactor: 6, price: 5200}], imageUrl: 'https://picsum.photos/seed/sumo/400/300', warehouseId: 'wh-b1-store', stockLevel: 250, lot: 'LOTE2024C', expiryDate: '2025-03-01' },
+  { id: 'p5', name: 'Cimento Portland 50kg', description: 'Cimento para construção civil.', sku: 'PROD004', price: 4500, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [], imageUrl: 'https://picsum.photos/seed/cimento/400/300', warehouseId: 'wh-b1-store', stockLevel: 500 },
+  { id: 'p6', name: 'Consultoria de Negócios', description: 'Sessão de consultoria estratégica (1 hora).', sku: 'SERV002', price: 50000, kind: ProductKind.SERVICE, trackStock: false, unit: 'HR', packaging: [], imageUrl: 'https://picsum.photos/seed/consultoria/400/300', warehouseId: 'wh-main-general' },
+  { id: 'p7', name: 'Caixa de Ferramentas', description: 'Kit completo para reparações.', sku: 'PROD005', price: 35000, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [], imageUrl: 'https://picsum.photos/seed/ferramentas/400/300', warehouseId: 'wh-b2-store', stockLevel: 30 },
+  { id: 'p8', name: 'Lâmpada LED', description: 'Lâmpada de baixo consumo.', sku: 'PROD006', price: 1500, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [], imageUrl: 'https://picsum.photos/seed/lampada/400/300', warehouseId: 'wh-b1s-store', stockLevel: 200 },
 ];
 
 const deliveries: Delivery[] = [
@@ -30,10 +47,24 @@ const deliveries: Delivery[] = [
     { id: 'd2', orderId: 'o2', driver: users.find(u=>u.role === UserRole.DRIVER && u.name.includes('Ana'))!, vehicle: { brand: 'Haojue', model: 'M-150', licensePlate: 'BE-03-04-BB' }, status: 'Aguardando', estimatedDelivery: '16:00', currentLocation: { lat: -12.5763, lng: 13.4155 } },
 ];
 
-const companies: Company[] = [
+const deliveryCompanies: DeliveryCompany[] = [
     { id: 'c1', name: 'Entrega Rápida Lda', drivers: [users[3]] },
     { id: 'c2', name: 'MotoBoys Express', drivers: [users[4]] },
 ];
+
+const getDescendantCompanyIds = (companyId: string): string[] => {
+    const children = companies.filter(c => c.parentId === companyId);
+    let descendants = children.map(c => c.id);
+    children.forEach(child => {
+        descendants = [...descendants, ...getDescendantCompanyIds(child.id)];
+    });
+    return descendants;
+};
+
+const embedWarehouse = (product: Product): Product => {
+    const warehouse = warehouses.find(w => w.id === product.warehouseId);
+    return { ...product, warehouse };
+};
 
 const api = {
   login: async (email: string): Promise<User | undefined> => {
@@ -73,35 +104,54 @@ const api = {
     const start = (page - 1) * limit;
     const end = start + limit;
     
-    return { data: filteredProducts.slice(start, end), total, page, limit };
+    const data = filteredProducts.slice(start, end).map(embedWarehouse);
+    return { data, total, page, limit };
   },
 
-  getSellerProducts: async (sellerId: string, filters: { query?: string }, page: number = 1, limit: number = 10): Promise<PaginatedResponse<Product>> => {
+  getSellerProducts: async (user: User, filters: { query?: string }, page: number = 1, limit: number = 10): Promise<PaginatedResponse<Product>> => {
     await new Promise(res => setTimeout(res, 500));
-    // In a real app, products would be associated with a seller
-    let sellerProducts = products; // .filter(p => ['p1', 'p2', 'p3', 'p6'].includes(p.id));
+    
+    let visibleCompanyIds: string[] = [];
+
+    if (user.role === UserRole.GROUP_MANAGER) {
+        visibleCompanyIds = [user.companyId, ...getDescendantCompanyIds(user.companyId)];
+    } else { // SELLER, MANAGER, ADMIN (who sees everything in this context)
+        if (user.role === UserRole.ADMIN) {
+             visibleCompanyIds = companies.map(c => c.id);
+        } else {
+            visibleCompanyIds = [user.companyId];
+        }
+    }
+    
+    const companyWarehouses = warehouses.filter(w => visibleCompanyIds.includes(w.companyId));
+    const companyWarehouseIds = companyWarehouses.map(w => w.id);
+    
+    let companyProducts = products.filter(p => companyWarehouseIds.includes(p.warehouseId));
 
     if (filters.query) {
         const query = filters.query.toLowerCase();
-        sellerProducts = sellerProducts.filter(p => p.name.toLowerCase().includes(query) || p.sku.toLowerCase().includes(query));
+        companyProducts = companyProducts.filter(p => p.name.toLowerCase().includes(query) || p.sku.toLowerCase().includes(query));
     }
     
-    const total = sellerProducts.length;
+    const total = companyProducts.length;
     const start = (page - 1) * limit;
     const end = start + limit;
-
-    return { data: sellerProducts.slice(start, end), total, page, limit };
+    
+    const data = companyProducts.slice(start, end).map(embedWarehouse);
+    return { data, total, page, limit };
   },
 
-  addProduct: async (productData: Omit<Product, 'id' | 'imageUrl'>): Promise<Product> => {
+  addProduct: async (productData: Omit<Product, 'id' | 'imageUrl' | 'packaging'>): Promise<Product> => {
     await new Promise(res => setTimeout(res, 500));
+    // FIX: Added missing 'packaging' property to conform to the Product type.
     const newProduct: Product = {
       id: `p${products.length + 1}-${Math.random().toString(16).slice(2)}`,
       imageUrl: `https://picsum.photos/seed/${encodeURIComponent(productData.name)}/400/300`,
+      packaging: [],
       ...productData,
     };
     products.unshift(newProduct);
-    return newProduct;
+    return embedWarehouse(newProduct);
   },
 
   addMultipleProducts: async (productsData: Omit<Product, 'id' | 'imageUrl' | 'packaging'>[]): Promise<Product[]> => {
@@ -113,7 +163,7 @@ const api = {
       packaging: [], // Assuming no packaging from CSV for simplicity
     }));
     products.unshift(...newProducts);
-    return newProducts;
+    return newProducts.map(embedWarehouse);
   },
 
   updateProduct: async (productId: string, productData: Partial<Product>): Promise<Product | undefined> => {
@@ -121,7 +171,7 @@ const api = {
       const productIndex = products.findIndex(p => p.id === productId);
       if (productIndex > -1) {
           products[productIndex] = { ...products[productIndex], ...productData };
-          return products[productIndex];
+          return embedWarehouse(products[productIndex]);
       }
       return undefined;
   },
@@ -142,7 +192,12 @@ const api = {
     const start = (page - 1) * limit;
     const end = start + limit;
     
-    return { data: filteredUsers.slice(start, end), total, page, limit };
+    const dataWithCompany = filteredUsers.slice(start, end).map(user => {
+        const company = companies.find(c => c.id === user.companyId);
+        return { ...user, companyName: company?.name || 'N/A' };
+    });
+
+    return { data: dataWithCompany, total, page, limit };
   },
   
   getDeliveries: async (): Promise<Delivery[]> => {
@@ -150,9 +205,9 @@ const api = {
     return deliveries;
   },
 
-  getCompanies: async (): Promise<Company[]> => {
+  getDeliveryCompanies: async (): Promise<DeliveryCompany[]> => {
     await new Promise(res => setTimeout(res, 500));
-    return companies;
+    return deliveryCompanies;
   },
   
   getSummaryCounts: async (): Promise<{products: number, users: number, deliveries: number}> => {
@@ -169,7 +224,7 @@ const api = {
       const productIndex = products.findIndex(p => p.id === productId);
       if (productIndex > -1) {
           products[productIndex].stockLevel = newStockLevel;
-          return products[productIndex];
+          return embedWarehouse(products[productIndex]);
       }
       return undefined;
   },
@@ -215,7 +270,60 @@ const api = {
     
     return true;
   },
+  
+  getCompanyHierarchy: async (): Promise<Company[]> => {
+    await new Promise(res => setTimeout(res, 300));
+    return companies;
+  },
+
+  createCompany: async (name: string, parentId: string | null): Promise<Company> => {
+    await new Promise(res => setTimeout(res, 500));
+    const newCompany: Company = {
+        id: `c-${Date.now()}`,
+        name,
+        parentId,
+    };
+    companies.push(newCompany);
+
+    // Create default warehouses
+    const newStoreWarehouse: Warehouse = {
+        id: `wh-${newCompany.id}-store`,
+        name: `Armazém da Loja (${name})`,
+        location: 'N/D',
+        type: WarehouseType.STORE,
+        companyId: newCompany.id,
+    };
+    const newGeneralWarehouse: Warehouse = {
+        id: `wh-${newCompany.id}-general`,
+        name: `Armazém Geral (${name})`,
+        location: 'N/D',
+        type: WarehouseType.GENERAL,
+        companyId: newCompany.id,
+    };
+    warehouses.push(newStoreWarehouse, newGeneralWarehouse);
+
+    return newCompany;
+  },
+
+  getWarehouses: async (): Promise<Warehouse[]> => {
+    await new Promise(res => setTimeout(res, 200));
+    return warehouses;
+  },
+
+  getVisibleWarehouses: async (user: User): Promise<Warehouse[]> => {
+    await new Promise(res => setTimeout(res, 200));
+    
+    let visibleCompanyIds: string[] = [];
+    if (user.role === UserRole.GROUP_MANAGER) {
+        visibleCompanyIds = [user.companyId, ...getDescendantCompanyIds(user.companyId)];
+    } else if (user.role === UserRole.ADMIN) {
+        return warehouses;
+    } else {
+        visibleCompanyIds = [user.companyId];
+    }
+    
+    return warehouses.filter(w => visibleCompanyIds.includes(w.companyId));
+  },
 };
 
-export const MOCK_WAREHOUSES = warehouses;
 export default api;

@@ -1,41 +1,59 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
-import { Product } from '../../types';
-import mockApi, { MOCK_WAREHOUSES } from '../../services/mockApi';
+import { Product, Warehouse, User } from '../../types';
+import mockApi from '../../services/mockApi';
 import { useAuth } from '../../hooks/useAuth';
 import { Pagination } from '../../components/Pagination';
 import { AdjustStockModal } from '../../components/modals/AdjustStockModal';
 import { useSettings } from '../../hooks/useSettings';
 import { TransferStockModal } from '../../components/modals/TransferStockModal';
+import { WarehouseDetailsModal } from '../../components/modals/WarehouseDetailsModal';
+import { ChevronDownIcon } from '../../components/Icons';
 
-const getExpiryStatus = (expiryDate: string | undefined, warningDays: number): { className: string; label: string } => {
-    if (!expiryDate) return { className: 'text-gray-500', label: 'N/A' };
+const getExpiryStatus = (expiryDate: string | undefined, warningDays: number): { className: string; label: string; isExpired: boolean } => {
+    if (!expiryDate) return { className: 'bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/20', label: 'N/A', isExpired: false };
 
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0); 
-        const expiry = new Date(expiryDate);
-         if (isNaN(expiry.getTime())) return { className: '', label: expiryDate };
+        
+        const dateParts = expiryDate.split('-').map(part => parseInt(part, 10));
+        if (dateParts.length !== 3 || dateParts.some(isNaN)) {
+             return { className: 'bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/20', label: expiryDate, isExpired: false };
+        }
+        const expiry = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        expiry.setHours(0, 0, 0, 0);
+
+        if (isNaN(expiry.getTime())) return { className: 'bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/20', label: expiryDate, isExpired: false };
 
         const diffTime = expiry.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
         if (diffDays < 0) {
-            return { className: 'bg-red-100 text-red-800', label: expiryDate };
+            return { className: 'bg-red-100 text-red-800 ring-1 ring-inset ring-red-600/20', label: expiryDate, isExpired: true };
         }
         if (diffDays <= warningDays) {
-            return { className: 'bg-yellow-100 text-yellow-800', label: expiryDate };
+            return { className: 'bg-yellow-100 text-yellow-800 ring-1 ring-inset ring-yellow-600/20', label: expiryDate, isExpired: false };
         }
-        return { className: 'bg-green-100 text-green-800', label: expiryDate };
+        return { className: 'bg-green-100 text-green-800 ring-1 ring-inset ring-green-600/20', label: expiryDate, isExpired: false };
     } catch (e) {
-        return { className: '', label: expiryDate };
+        return { className: 'bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/20', label: expiryDate, isExpired: false };
     }
 };
 
-const InventoryRow: React.FC<{ product: Product; onAdjustClick: (product: Product) => void; onTransferClick: (product: Product) => void; expiryWarningDays: number; }> = ({ product, onAdjustClick, onTransferClick, expiryWarningDays }) => {
+const InventoryRow: React.FC<{
+    product: Product;
+    onAdjustClick: (product: Product) => void;
+    onTransferClick: (product: Product) => void;
+    onViewWarehouseClick: (warehouse: Warehouse) => void;
+    expiryWarningDays: number;
+    isActionMenuOpen: boolean;
+    onToggleActionMenu: () => void;
+}> = ({ product, onAdjustClick, onTransferClick, onViewWarehouseClick, expiryWarningDays, isActionMenuOpen, onToggleActionMenu }) => {
     const expiryInfo = getExpiryStatus(product.expiryDate, expiryWarningDays);
     
     return (
-        <tr className="border-b hover:bg-gray-50">
+        <tr className={`border-b ${expiryInfo.isExpired ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'} transition-colors duration-150`}>
             <td className="py-3 px-6 text-sm text-gray-700 flex items-center">
                 <img src={product.imageUrl} alt={product.name} className="w-10 h-10 rounded-md object-cover mr-4"/>
                 <div>
@@ -43,7 +61,7 @@ const InventoryRow: React.FC<{ product: Product; onAdjustClick: (product: Produc
                     <div className="text-xs text-gray-500">{product.sku}</div>
                 </div>
             </td>
-            <td className="py-3 px-6 text-sm text-gray-700">{MOCK_WAREHOUSES.find(w => w.id === product.warehouseId)?.name || 'N/A'}</td>
+            <td className="py-3 px-6 text-sm text-gray-700">{product.warehouse ? `${product.warehouse.name} (${product.warehouse.type})` : 'N/A'}</td>
             <td className="py-3 px-6 text-sm text-gray-700 font-bold text-center">{product.stockLevel}</td>
             <td className="py-3 px-6 text-sm text-gray-700">{product.lot || 'N/A'}</td>
             <td className="py-3 px-6 text-sm text-gray-700">
@@ -52,8 +70,24 @@ const InventoryRow: React.FC<{ product: Product; onAdjustClick: (product: Produc
                 </span>
             </td>
             <td className="py-3 px-6 text-sm">
-                 <button onClick={() => onAdjustClick(product)} className="font-medium text-primary-600 hover:underline mr-4">Ajustar</button>
-                 <button onClick={() => onTransferClick(product)} className="font-medium text-primary-600 hover:underline">Transferir</button>
+                 <div className="relative">
+                    <button
+                        onClick={onToggleActionMenu}
+                        className="flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    >
+                        Ações
+                        <ChevronDownIcon className="w-4 h-4 ml-2 -mr-1" />
+                    </button>
+                    {isActionMenuOpen && (
+                        <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                            <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                <a href="#" onClick={(e) => { e.preventDefault(); onAdjustClick(product); onToggleActionMenu(); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Ajustar Stock</a>
+                                <a href="#" onClick={(e) => { e.preventDefault(); onTransferClick(product); onToggleActionMenu(); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Transferir Stock</a>
+                                {product.warehouse && <a href="#" onClick={(e) => { e.preventDefault(); onViewWarehouseClick(product.warehouse!); onToggleActionMenu(); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Ver Armazém</a>}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </td>
         </tr>
     );
@@ -72,12 +106,15 @@ export const InventoryPage: React.FC = () => {
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [transferringProduct, setTransferringProduct] = useState<Product | null>(null);
     const [refreshKey, setRefreshKey] = useState(0);
+    const [isWarehouseDetailsOpen, setIsWarehouseDetailsOpen] = useState(false);
+    const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
+    const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchProducts = async () => {
             if(!user) return;
             setLoading(true);
-            const data = await mockApi.getProducts({ query: '' }, 1, 1000); // Fetch all
+            const data = await mockApi.getSellerProducts(user, { query: '' }, 1, 1000); // Fetch all for user scope
             const stockableProducts = data.data.filter(p => p.trackStock);
             setAllProducts(stockableProducts);
             setLoading(false);
@@ -116,6 +153,11 @@ export const InventoryPage: React.FC = () => {
         setRefreshKey(oldKey => oldKey + 1);
     };
 
+    const handleViewWarehouseDetails = (warehouse: Warehouse) => {
+        setSelectedWarehouse(warehouse);
+        setIsWarehouseDetailsOpen(true);
+    };
+
     return (
         <>
             <div>
@@ -149,7 +191,16 @@ export const InventoryPage: React.FC = () => {
                                 {loading ? (
                                     <tr><td colSpan={6} className="text-center py-6">A carregar inventário...</td></tr>
                                 ) : paginatedProducts.length > 0 ? (
-                                   paginatedProducts.map(p => <InventoryRow key={p.id} product={p} onAdjustClick={handleOpenAdjustModal} onTransferClick={handleOpenTransferModal} expiryWarningDays={expiryWarningDays} />)
+                                   paginatedProducts.map(p => <InventoryRow 
+                                        key={p.id} 
+                                        product={p} 
+                                        onAdjustClick={handleOpenAdjustModal} 
+                                        onTransferClick={handleOpenTransferModal} 
+                                        onViewWarehouseClick={handleViewWarehouseDetails} 
+                                        expiryWarningDays={expiryWarningDays} 
+                                        isActionMenuOpen={openActionMenuId === p.id}
+                                        onToggleActionMenu={() => setOpenActionMenuId(prevId => (prevId === p.id ? null : p.id))}
+                                   />)
                                 ) : (
                                     <tr><td colSpan={6} className="text-center py-6">Nenhum produto encontrado.</td></tr>
                                 )}
@@ -169,7 +220,13 @@ export const InventoryPage: React.FC = () => {
                 isOpen={isTransferModalOpen}
                 onClose={() => setIsTransferModalOpen(false)}
                 product={transferringProduct}
+                user={user}
                 onStockTransferred={handleStockTransferred}
+            />
+            <WarehouseDetailsModal
+                isOpen={isWarehouseDetailsOpen}
+                onClose={() => setIsWarehouseDetailsOpen(false)}
+                warehouse={selectedWarehouse}
             />
         </>
     );

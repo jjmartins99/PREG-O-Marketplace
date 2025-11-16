@@ -1,18 +1,18 @@
-
 import React, { useState, useEffect } from 'react';
-import { Product, ProductKind } from '../../types';
+import { Product, ProductKind, Warehouse, User } from '../../types';
 import { XIcon, SparklesIcon } from '../Icons';
-import mockApi, { MOCK_WAREHOUSES } from '../../services/mockApi';
+import mockApi from '../../services/mockApi';
 import { GoogleGenAI } from "@google/genai";
 
 interface ProductFormModalProps {
   product: Product | null;
+  user: User | null;
   isOpen: boolean;
   onClose: () => void;
   onSave: (product: Product) => void;
 }
 
-const initialFormState: Omit<Product, 'id' | 'imageUrl' | 'packaging'> = {
+const initialFormState: Omit<Product, 'id' | 'imageUrl' | 'packaging' | 'warehouse'> = {
     name: '',
     description: '',
     sku: '',
@@ -20,32 +20,38 @@ const initialFormState: Omit<Product, 'id' | 'imageUrl' | 'packaging'> = {
     kind: ProductKind.GOOD,
     trackStock: true,
     unit: 'UN',
-    warehouseId: 'wh1',
+    warehouseId: '',
     stockLevel: 0,
     lot: '',
     expiryDate: '',
 };
 
 
-export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, isOpen, onClose, onSave }) => {
-  const [formData, setFormData] = useState<Omit<Product, 'id' | 'imageUrl' | 'packaging'>>(initialFormState);
+export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, user, isOpen, onClose, onSave }) => {
+  const [formData, setFormData] = useState(initialFormState);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errors, setErrors] = useState<{ stockLevel?: string }>({});
 
   useEffect(() => {
     if (isOpen) {
-        if (product) {
-            // Editing existing product
-            const { id, imageUrl, packaging, ...editableFields } = product;
-            setFormData(editableFields);
-        } else {
-            // Adding new product
-            setFormData(initialFormState);
+        if (user) {
+            mockApi.getVisibleWarehouses(user).then(whs => {
+                setWarehouses(whs);
+                if (product) {
+                    // Editing existing product
+                    const { id, imageUrl, packaging, warehouse, ...editableFields } = product;
+                    setFormData(editableFields);
+                } else {
+                    // Adding new product - set default warehouse
+                    setFormData({...initialFormState, warehouseId: whs[0]?.id || '' });
+                }
+            });
         }
         setErrors({});
     }
-  }, [product, isOpen]);
+  }, [product, isOpen, user]);
 
   if (!isOpen) return null;
 
@@ -197,29 +203,33 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, isO
                                 <option value="false">Não</option>
                             </select>
                         </div>
-                        {formData.trackStock && (
-                            <div>
-                                <label htmlFor="stockLevel" className="block text-sm font-medium text-gray-700">Stock Inicial</label>
-                                <input type="number" name="stockLevel" id="stockLevel" value={formData.stockLevel || 0} onChange={handleChange} required className="mt-1 w-full input-style" />
-                                {errors.stockLevel && <p className="text-red-500 text-xs mt-1">{errors.stockLevel}</p>}
-                            </div>
-                        )}
+                        
                         <div>
                             <label htmlFor="warehouseId" className="block text-sm font-medium text-gray-700">Armazém</label>
                             <select name="warehouseId" id="warehouseId" value={formData.warehouseId} onChange={handleChange} className="mt-1 w-full input-style">
-                                {MOCK_WAREHOUSES.map(wh => <option key={wh.id} value={wh.id}>{wh.name}</option>)}
+                                {warehouses.map(wh => <option key={wh.id} value={wh.id}>{wh.name} ({wh.type})</option>)}
                             </select>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                             <div>
-                                <label htmlFor="lot" className="block text-sm font-medium text-gray-700">Lote</label>
-                                <input type="text" name="lot" id="lot" value={formData.lot || ''} onChange={handleChange} className="mt-1 w-full input-style" />
-                            </div>
-                            <div>
-                                <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700">Data de Validade</label>
-                                <input type="date" name="expiryDate" id="expiryDate" value={formData.expiryDate || ''} onChange={handleChange} className="mt-1 w-full input-style" />
-                            </div>
-                        </div>
+
+                        {formData.trackStock && (
+                            <>
+                                <div className="pt-2">
+                                    <label htmlFor="stockLevel" className="block text-sm font-medium text-gray-700">Stock Inicial</label>
+                                    <input type="number" name="stockLevel" id="stockLevel" value={formData.stockLevel || 0} onChange={handleChange} required className="mt-1 w-full input-style" />
+                                    {errors.stockLevel && <p className="text-red-500 text-xs mt-1">{errors.stockLevel}</p>}
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                     <div>
+                                        <label htmlFor="lot" className="block text-sm font-medium text-gray-700">Lote</label>
+                                        <input type="text" name="lot" id="lot" value={formData.lot || ''} onChange={handleChange} className="mt-1 w-full input-style" />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700">Data de Validade</label>
+                                        <input type="date" name="expiryDate" id="expiryDate" value={formData.expiryDate || ''} onChange={handleChange} className="mt-1 w-full input-style" />
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
             </div>

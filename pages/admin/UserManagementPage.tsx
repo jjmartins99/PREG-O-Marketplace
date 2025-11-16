@@ -13,6 +13,7 @@ const UserRow: React.FC<{ user: User }> = ({ user }) => (
                 <div className="text-gray-500 text-xs">{user.email}</div>
             </div>
         </td>
+        <td className="py-3 px-6 text-sm text-gray-700">{user.companyName}</td>
         <td className="py-3 px-6 text-sm text-gray-700">{user.role}</td>
         <td className="py-3 px-6 text-sm">
              <button className="font-medium text-primary-600 hover:underline mr-4">Editar</button>
@@ -79,17 +80,18 @@ export const UserManagementPage: React.FC = () => {
                         <thead className="bg-gray-100">
                             <tr>
                                 <th className="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Usuário</th>
+                                <th className="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Empresa/Loja</th>
                                 <th className="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Perfil</th>
                                 <th className="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="text-gray-600 text-sm font-light">
                             {loading ? (
-                                <tr><td colSpan={3} className="text-center py-6">A carregar usuários...</td></tr>
+                                <tr><td colSpan={4} className="text-center py-6">A carregar usuários...</td></tr>
                             ) : users.length > 0 ? (
                                users.map(u => <UserRow key={u.id} user={u} />)
                             ) : (
-                                <tr><td colSpan={3} className="text-center py-6">Nenhum usuário encontrado.</td></tr>
+                                <tr><td colSpan={4} className="text-center py-6">Nenhum usuário encontrado.</td></tr>
                             )}
                         </tbody>
                     </table>

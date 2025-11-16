@@ -1,4 +1,3 @@
-
 import React, { ReactNode, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -51,7 +50,7 @@ const Sidebar: React.FC<{}> = () => {
       }
 
       let items = [...navs.common];
-      if (role === UserRole.SELLER || role === UserRole.ADMIN || role === UserRole.MANAGER) {
+      if (role === UserRole.SELLER || role === UserRole.ADMIN || role === UserRole.MANAGER || role === UserRole.GROUP_MANAGER) {
           items.push(...navs.seller);
       }
       if (role === UserRole.ADMIN) {

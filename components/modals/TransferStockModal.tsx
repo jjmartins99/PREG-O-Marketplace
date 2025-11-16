@@ -1,32 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { Product } from '../../types';
+import { Product, Warehouse, User } from '../../types';
 import { XIcon } from '../Icons';
-import mockApi, { MOCK_WAREHOUSES } from '../../services/mockApi';
+import mockApi from '../../services/mockApi';
 
 interface TransferStockModalProps {
   product: Product | null;
+  user: User | null;
   isOpen: boolean;
   onClose: () => void;
   onStockTransferred: () => void;
 }
 
-export const TransferStockModal: React.FC<TransferStockModalProps> = ({ product, isOpen, onClose, onStockTransferred }) => {
+export const TransferStockModal: React.FC<TransferStockModalProps> = ({ product, user, isOpen, onClose, onStockTransferred }) => {
   const [quantity, setQuantity] = useState(1);
   const [destinationWarehouseId, setDestinationWarehouseId] = useState('');
   const [isTransferring, setIsTransferring] = useState(false);
   const [error, setError] = useState('');
+  const [availableWarehouses, setAvailableWarehouses] = useState<Warehouse[]>([]);
 
   useEffect(() => {
-    if (product) {
+    if (product && user && isOpen) {
+      mockApi.getVisibleWarehouses(user).then(whs => {
+          setAvailableWarehouses(whs.filter(w => w.id !== product.warehouseId));
+      });
       setQuantity(1);
       setDestinationWarehouseId('');
       setError('');
     }
-  }, [product]);
+  }, [product, user, isOpen]);
 
   if (!isOpen || !product) return null;
-
-  const availableWarehouses = MOCK_WAREHOUSES.filter(wh => wh.id !== product.warehouseId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +73,7 @@ export const TransferStockModal: React.FC<TransferStockModalProps> = ({ product,
           <div className="p-6 space-y-4">
             <div>
                 <h3 className="font-medium text-gray-800">{product.name}</h3>
-                <p className="text-sm text-gray-500">Stock atual: {product.stockLevel} em {MOCK_WAREHOUSES.find(w => w.id === product.warehouseId)?.name}</p>
+                <p className="text-sm text-gray-500">Stock atual: {product.stockLevel} em {product.warehouse?.name}</p>
             </div>
             <div>
               <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">Quantidade a Transferir</label>
@@ -96,7 +99,7 @@ export const TransferStockModal: React.FC<TransferStockModalProps> = ({ product,
               >
                 <option value="">Selecione o destino</option>
                 {availableWarehouses.map(wh => (
-                    <option key={wh.id} value={wh.id}>{wh.name}</option>
+                    <option key={wh.id} value={wh.id}>{wh.name} ({wh.type})</option>
                 ))}
               </select>
             </div>

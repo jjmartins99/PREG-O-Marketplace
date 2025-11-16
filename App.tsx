@@ -49,7 +49,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="comprar" element={<MarketplaceBrowsePage />} />
                 <Route path="entregas" element={<DeliveryTrackingPage />} />
                 
-                <Route path="vender" element={<ProtectedRoute roles={[UserRole.SELLER, UserRole.MANAGER, UserRole.ADMIN]} />}>
+                <Route path="vender" element={<ProtectedRoute roles={[UserRole.SELLER, UserRole.MANAGER, UserRole.ADMIN, UserRole.GROUP_MANAGER]} />}>
                    <Route path="produtos" element={<MyProductsPage />} />
                    <Route path="inventario" element={<InventoryPage />} />
                 </Route>

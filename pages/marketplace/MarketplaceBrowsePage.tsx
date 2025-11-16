@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Product, ProductFilters, ProductKind } from '../../types';
-import mockApi, { MOCK_WAREHOUSES } from '../../services/mockApi';
+import { Product, ProductFilters, ProductKind, Warehouse } from '../../types';
+import mockApi from '../../services/mockApi';
 import { Pagination } from '../../components/Pagination';
 import { useCart } from '../../hooks/useCart';
 
@@ -30,7 +30,12 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
 };
 
 const FilterPanel: React.FC<{ filters: ProductFilters, onFilterChange: (filters: ProductFilters) => void }> = ({ filters, onFilterChange }) => {
-    
+    const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+
+    useEffect(() => {
+        mockApi.getWarehouses().then(setWarehouses);
+    }, []);
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         onFilterChange({ ...filters, [name]: value });
@@ -56,7 +61,7 @@ const FilterPanel: React.FC<{ filters: ProductFilters, onFilterChange: (filters:
                 </select>
                 <select name="warehouseId" value={filters.warehouseId} onChange={handleInputChange} className="w-full md:w-40 px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
                     <option value="all">Todo Armazém</option>
-                    {MOCK_WAREHOUSES.map(wh => <option key={wh.id} value={wh.id}>{wh.name}</option>)}
+                    {warehouses.map(wh => <option key={wh.id} value={wh.id}>{wh.name}</option>)}
                 </select>
                 <select name="sortBy" value={filters.sortBy} onChange={handleInputChange} className="w-full md:w-40 px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
                     <option value="name-asc">Ordenar por</option>
