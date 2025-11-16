@@ -12,6 +12,8 @@ import { MainLayout } from './components/layout/MainLayout';
 import { UserRole } from './types';
 import { CartProvider } from './contexts/CartContext';
 import { InventoryPage } from './pages/seller/InventoryPage';
+import { SettingsProvider } from './contexts/SettingsContext';
+import { SettingsPage } from './pages/admin/SettingsPage';
 
 const ProtectedRoute: React.FC<{ roles?: UserRole[], children?: ReactNode }> = ({ roles, children }) => {
     const { isAuthenticated, user, loading } = useAuth();
@@ -54,7 +56,7 @@ const AppRoutes: React.FC = () => {
 
                 <Route path="admin" element={<ProtectedRoute roles={[UserRole.ADMIN]} />}>
                    <Route path="usuarios" element={<UserManagementPage />} />
-                   <Route path="settings" element={<div><h1>Configurações Globais</h1></div>} />
+                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
             </Route>
             
@@ -66,11 +68,13 @@ const AppRoutes: React.FC = () => {
 const App: React.FC = () => {
     return (
         <AuthProvider>
-            <CartProvider>
-                <HashRouter>
-                    <AppRoutes />
-                </HashRouter>
-            </CartProvider>
+            <SettingsProvider>
+                <CartProvider>
+                    <HashRouter>
+                        <AppRoutes />
+                    </HashRouter>
+                </CartProvider>
+            </SettingsProvider>
         </AuthProvider>
     );
 };

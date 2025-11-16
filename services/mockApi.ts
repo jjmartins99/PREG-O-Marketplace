@@ -42,7 +42,7 @@ const api = {
     return users.find(u => u.email.toLowerCase() === email.toLowerCase());
   },
   
-  getProducts: async (filters: ProductFilters, page: number = 1, limit: number = 8): Promise<PaginatedResponse<Product>> => {
+  getProducts: async (filters: ProductFilters, page: number = 1, limit: number = 1000): Promise<PaginatedResponse<Product>> => {
     await new Promise(res => setTimeout(res, 500));
     let filteredProducts = [...products];
 
@@ -172,7 +172,49 @@ const api = {
           return products[productIndex];
       }
       return undefined;
-  }
+  },
+
+  transferStock: async (sourceProductId: string, toWarehouseId: string, quantity: number): Promise<boolean> => {
+    await new Promise(res => setTimeout(res, 800));
+    const sourceProductIndex = products.findIndex(p => p.id === sourceProductId);
+
+    if (sourceProductIndex === -1) {
+        console.error("Source product not found for transfer");
+        return false;
+    }
+    
+    const sourceProduct = products[sourceProductIndex];
+
+    if (!sourceProduct.stockLevel || quantity > sourceProduct.stockLevel) {
+        console.error("Transfer quantity exceeds available stock");
+        return false;
+    }
+
+    const existingProductInDestIndex = products.findIndex(p => p.sku === sourceProduct.sku && p.warehouseId === toWarehouseId);
+    
+    sourceProduct.stockLevel -= quantity;
+    
+    if (existingProductInDestIndex > -1) {
+        const destProduct = products[existingProductInDestIndex];
+        if (destProduct.stockLevel !== undefined) {
+           destProduct.stockLevel += quantity;
+        } else {
+           destProduct.stockLevel = quantity;
+        }
+    } else {
+        const newProductEntry: Product = {
+            ...sourceProduct,
+            id: `p${products.length + 1}-${Math.random().toString(16).slice(2)}`,
+            warehouseId: toWarehouseId,
+            stockLevel: quantity,
+            lot: `TRANSF-${sourceProduct.lot || ''}`,
+            expiryDate: sourceProduct.expiryDate,
+        };
+        products.unshift(newProductEntry);
+    }
+    
+    return true;
+  },
 };
 
 export const MOCK_WAREHOUSES = warehouses;
