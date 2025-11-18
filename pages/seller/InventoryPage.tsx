@@ -9,6 +9,8 @@ import { useSettings } from '../../hooks/useSettings';
 import { TransferStockModal } from '../../components/modals/TransferStockModal';
 import { WarehouseDetailsModal } from '../../components/modals/WarehouseDetailsModal';
 import { ChevronDownIcon } from '../../components/Icons';
+import { LotDetailsModal } from '../../components/modals/LotDetailsModal';
+import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 
 const getExpiryStatus = (expiryDate: string | undefined, warningDays: number): { className: string; label: string; isExpired: boolean } => {
     if (!expiryDate) return { className: 'bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/20', label: 'N/A', isExpired: false };
@@ -46,10 +48,12 @@ const InventoryRow: React.FC<{
     onAdjustClick: (product: Product) => void;
     onTransferClick: (product: Product) => void;
     onViewWarehouseClick: (warehouse: Warehouse) => void;
+    onViewLotClick: (product: Product) => void;
+    onDeleteClick: (product: Product) => void;
     expiryWarningDays: number;
     isActionMenuOpen: boolean;
     onToggleActionMenu: () => void;
-}> = ({ product, onAdjustClick, onTransferClick, onViewWarehouseClick, expiryWarningDays, isActionMenuOpen, onToggleActionMenu }) => {
+}> = ({ product, onAdjustClick, onTransferClick, onViewWarehouseClick, onViewLotClick, onDeleteClick, expiryWarningDays, isActionMenuOpen, onToggleActionMenu }) => {
     const expiryInfo = getExpiryStatus(product.expiryDate, expiryWarningDays);
     
     return (
@@ -84,6 +88,9 @@ const InventoryRow: React.FC<{
                                 <a href="#" onClick={(e) => { e.preventDefault(); onAdjustClick(product); onToggleActionMenu(); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Ajustar Stock</a>
                                 <a href="#" onClick={(e) => { e.preventDefault(); onTransferClick(product); onToggleActionMenu(); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Transferir Stock</a>
                                 {product.warehouse && <a href="#" onClick={(e) => { e.preventDefault(); onViewWarehouseClick(product.warehouse!); onToggleActionMenu(); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Ver Armazém</a>}
+                                {product.lot && <a href="#" onClick={(e) => { e.preventDefault(); onViewLotClick(product); onToggleActionMenu(); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Ver Lote</a>}
+                                <div className="border-t border-gray-100 my-1"></div>
+                                <a href="#" onClick={(e) => { e.preventDefault(); onDeleteClick(product); onToggleActionMenu(); }} className="block px-4 py-2 text-sm text-red-700 hover:bg-red-50" role="menuitem">Eliminar</a>
                             </div>
                         </div>
                     )}
@@ -109,6 +116,11 @@ export const InventoryPage: React.FC = () => {
     const [isWarehouseDetailsOpen, setIsWarehouseDetailsOpen] = useState(false);
     const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
     const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
+    const [isLotDetailsOpen, setIsLotDetailsOpen] = useState(false);
+    const [selectedProductForLot, setSelectedProductForLot] = useState<Product | null>(null);
+    const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+    const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -158,6 +170,26 @@ export const InventoryPage: React.FC = () => {
         setIsWarehouseDetailsOpen(true);
     };
 
+    const handleViewLotDetails = (product: Product) => {
+        setSelectedProductForLot(product);
+        setIsLotDetailsOpen(true);
+    };
+
+    const handleOpenDeleteModal = (product: Product) => {
+        setProductToDelete(product);
+        setIsConfirmDeleteOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!productToDelete) return;
+        setIsDeleting(true);
+        await mockApi.deleteProduct(productToDelete.id);
+        setIsDeleting(false);
+        setIsConfirmDeleteOpen(false);
+        setProductToDelete(null);
+        setRefreshKey(k => k + 1);
+    };
+
     return (
         <>
             <div>
@@ -197,6 +229,8 @@ export const InventoryPage: React.FC = () => {
                                         onAdjustClick={handleOpenAdjustModal} 
                                         onTransferClick={handleOpenTransferModal} 
                                         onViewWarehouseClick={handleViewWarehouseDetails} 
+                                        onViewLotClick={handleViewLotDetails}
+                                        onDeleteClick={handleOpenDeleteModal}
                                         expiryWarningDays={expiryWarningDays} 
                                         isActionMenuOpen={openActionMenuId === p.id}
                                         onToggleActionMenu={() => setOpenActionMenuId(prevId => (prevId === p.id ? null : p.id))}
@@ -227,6 +261,20 @@ export const InventoryPage: React.FC = () => {
                 isOpen={isWarehouseDetailsOpen}
                 onClose={() => setIsWarehouseDetailsOpen(false)}
                 warehouse={selectedWarehouse}
+            />
+            <LotDetailsModal
+                isOpen={isLotDetailsOpen}
+                onClose={() => setIsLotDetailsOpen(false)}
+                product={selectedProductForLot}
+            />
+            <ConfirmationModal
+                isOpen={isConfirmDeleteOpen}
+                onClose={() => setIsConfirmDeleteOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="Eliminar Produto"
+                message={`Tem a certeza que deseja eliminar o produto "${productToDelete?.name}"? Esta ação não pode ser desfeita.`}
+                confirmText="Eliminar"
+                isConfirming={isDeleting}
             />
         </>
     );

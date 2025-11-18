@@ -1,3 +1,4 @@
+
 import { User, UserRole, Product, ProductKind, Delivery, DeliveryCompany, Company, Warehouse, WarehouseType, PaginatedResponse, ProductFilters, UserFilters } from '../types';
 
 const companies: Company[] = [
@@ -174,6 +175,13 @@ const api = {
           return embedWarehouse(products[productIndex]);
       }
       return undefined;
+  },
+
+  deleteProduct: async (productId: string): Promise<boolean> => {
+    await new Promise(res => setTimeout(res, 500));
+    const initialLength = products.length;
+    products = products.filter(p => p.id !== productId);
+    return products.length < initialLength;
   },
 
   getUsers: async (filters: UserFilters, page: number = 1, limit: number = 10): Promise<PaginatedResponse<User>> => {
