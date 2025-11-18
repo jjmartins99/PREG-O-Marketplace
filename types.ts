@@ -1,3 +1,4 @@
+
 export enum UserRole {
   ADMIN = 'Administrador',
   MANAGER = 'Gerente',
@@ -52,7 +53,10 @@ export interface Product {
 }
 
 export interface CartItem extends Product {
+    cartItemId: string;
     quantity: number;
+    variantId?: string;
+    conversionFactor: number;
 }
 
 export enum WarehouseType {

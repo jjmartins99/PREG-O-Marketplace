@@ -1,8 +1,10 @@
+
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 
 interface SettingsContextType {
   expiryWarningDays: number;
-  setExpiryWarningDays: (days: number) => void;
+  lowStockThreshold: number;
+  updateSettings: (settings: Partial<{ expiryWarningDays: number, lowStockThreshold: number }>) => void;
 }
 
 export const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -10,7 +12,8 @@ export const SettingsContext = createContext<SettingsContextType | undefined>(un
 const SETTINGS_KEY = 'pregao_settings';
 
 export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [expiryWarningDays, setExpiryWarningDaysState] = useState<number>(30);
+  const [expiryWarningDays, setExpiryWarningDays] = useState<number>(30);
+  const [lowStockThreshold, setLowStockThreshold] = useState<number>(10);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
@@ -19,7 +22,10 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (storedSettings) {
         const parsedSettings = JSON.parse(storedSettings);
         if (parsedSettings.expiryWarningDays !== undefined) {
-          setExpiryWarningDaysState(parsedSettings.expiryWarningDays);
+          setExpiryWarningDays(parsedSettings.expiryWarningDays);
+        }
+        if (parsedSettings.lowStockThreshold !== undefined) {
+          setLowStockThreshold(parsedSettings.lowStockThreshold);
         }
       }
     } catch (error) {
@@ -28,10 +34,21 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     setLoading(false);
   }, []);
 
-  const setExpiryWarningDays = (days: number) => {
-    setExpiryWarningDaysState(days);
+  const updateSettings = (newSettings: Partial<{ expiryWarningDays: number, lowStockThreshold: number }>) => {
+    let newExpiry = expiryWarningDays;
+    let newLow = lowStockThreshold;
+
+    if (newSettings.expiryWarningDays !== undefined) {
+        newExpiry = newSettings.expiryWarningDays;
+        setExpiryWarningDays(newExpiry);
+    }
+    if (newSettings.lowStockThreshold !== undefined) {
+        newLow = newSettings.lowStockThreshold;
+        setLowStockThreshold(newLow);
+    }
+
     try {
-      const settings = { expiryWarningDays: days };
+      const settings = { expiryWarningDays: newExpiry, lowStockThreshold: newLow };
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     } catch (error) {
       console.error("Failed to save settings to localStorage", error);
@@ -43,7 +60,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   }
 
   return (
-    <SettingsContext.Provider value={{ expiryWarningDays, setExpiryWarningDays }}>
+    <SettingsContext.Provider value={{ expiryWarningDays, lowStockThreshold, updateSettings }}>
       {children}
     </SettingsContext.Provider>
   );

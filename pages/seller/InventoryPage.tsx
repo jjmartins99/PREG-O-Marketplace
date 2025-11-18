@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Product, Warehouse, User } from '../../types';
+import { Product, Warehouse } from '../../types';
 import mockApi from '../../services/mockApi';
 import { useAuth } from '../../hooks/useAuth';
 import { Pagination } from '../../components/Pagination';
@@ -8,39 +8,65 @@ import { AdjustStockModal } from '../../components/modals/AdjustStockModal';
 import { useSettings } from '../../hooks/useSettings';
 import { TransferStockModal } from '../../components/modals/TransferStockModal';
 import { WarehouseDetailsModal } from '../../components/modals/WarehouseDetailsModal';
-import { ChevronDownIcon } from '../../components/Icons';
+import { ChevronDownIcon, DownloadIcon } from '../../components/Icons';
 import { LotDetailsModal } from '../../components/modals/LotDetailsModal';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 
-const getExpiryStatus = (expiryDate: string | undefined, warningDays: number): { className: string; label: string; isExpired: boolean } => {
-    if (!expiryDate) return { className: 'bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/20', label: 'N/A', isExpired: false };
-
+const getDaysUntilExpiry = (expiryDate?: string): number | null => {
+    if (!expiryDate) return null;
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0); 
         
         const dateParts = expiryDate.split('-').map(part => parseInt(part, 10));
         if (dateParts.length !== 3 || dateParts.some(isNaN)) {
-             return { className: 'bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/20', label: expiryDate, isExpired: false };
+             return null;
         }
         const expiry = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
         expiry.setHours(0, 0, 0, 0);
 
-        if (isNaN(expiry.getTime())) return { className: 'bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/20', label: expiryDate, isExpired: false };
+        if (isNaN(expiry.getTime())) return null;
 
         const diffTime = expiry.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (diffDays < 0) {
-            return { className: 'bg-red-100 text-red-800 ring-1 ring-inset ring-red-600/20', label: expiryDate, isExpired: true };
-        }
-        if (diffDays <= warningDays) {
-            return { className: 'bg-yellow-100 text-yellow-800 ring-1 ring-inset ring-yellow-600/20', label: expiryDate, isExpired: false };
-        }
-        return { className: 'bg-green-100 text-green-800 ring-1 ring-inset ring-green-600/20', label: expiryDate, isExpired: false };
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     } catch (e) {
-        return { className: 'bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/20', label: expiryDate, isExpired: false };
+        return null;
     }
+};
+
+const getExpiryStatus = (expiryDate: string | undefined, warningDays: number): { className: string; label: string; isExpired: boolean; title: string } => {
+    const diffDays = getDaysUntilExpiry(expiryDate);
+
+    if (diffDays === null) return { 
+        className: 'bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/20', 
+        label: expiryDate || 'N/A', 
+        isExpired: false,
+        title: 'Validade não aplicável'
+    };
+    
+    if (diffDays < 0) {
+        const days = Math.abs(diffDays);
+        return { 
+            className: 'bg-red-100 text-red-800 ring-1 ring-inset ring-red-600/20', 
+            label: expiryDate!, 
+            isExpired: true,
+            title: `Expirou há ${days} dia${days !== 1 ? 's' : ''}`
+        };
+    }
+    if (diffDays <= warningDays) {
+        return { 
+            className: 'bg-yellow-100 text-yellow-800 ring-1 ring-inset ring-yellow-600/20', 
+            label: expiryDate!, 
+            isExpired: false,
+            title: `Expira em ${diffDays} dia${diffDays !== 1 ? 's' : ''}`
+        };
+    }
+    return { 
+        className: 'bg-green-100 text-green-800 ring-1 ring-inset ring-green-600/20', 
+        label: expiryDate!, 
+        isExpired: false,
+        title: `Válido por mais ${diffDays} dias`
+    };
 };
 
 const InventoryRow: React.FC<{
@@ -53,8 +79,10 @@ const InventoryRow: React.FC<{
     expiryWarningDays: number;
     isActionMenuOpen: boolean;
     onToggleActionMenu: () => void;
-}> = ({ product, onAdjustClick, onTransferClick, onViewWarehouseClick, onViewLotClick, onDeleteClick, expiryWarningDays, isActionMenuOpen, onToggleActionMenu }) => {
+    lowStockThreshold: number;
+}> = ({ product, onAdjustClick, onTransferClick, onViewWarehouseClick, onViewLotClick, onDeleteClick, expiryWarningDays, isActionMenuOpen, onToggleActionMenu, lowStockThreshold }) => {
     const expiryInfo = getExpiryStatus(product.expiryDate, expiryWarningDays);
+    const isLowStock = (product.stockLevel || 0) <= lowStockThreshold;
     
     return (
         <tr className={`border-b ${expiryInfo.isExpired ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'} transition-colors duration-150`}>
@@ -66,10 +94,13 @@ const InventoryRow: React.FC<{
                 </div>
             </td>
             <td className="py-3 px-6 text-sm text-gray-700">{product.warehouse ? `${product.warehouse.name} (${product.warehouse.type})` : 'N/A'}</td>
-            <td className="py-3 px-6 text-sm text-gray-700 font-bold text-center">{product.stockLevel}</td>
+            <td className="py-3 px-6 text-sm text-gray-700 font-bold text-center">
+                <span className={isLowStock ? 'text-red-600' : 'text-gray-700'}>{product.stockLevel}</span>
+                {isLowStock && <span className="block text-[10px] text-red-500 font-normal">Stock Baixo</span>}
+            </td>
             <td className="py-3 px-6 text-sm text-gray-700">{product.lot || 'N/A'}</td>
-            <td className="py-3 px-6 text-sm text-gray-700">
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${expiryInfo.className}`}>
+            <td className="py-3 px-6 text-sm text-gray-700" title={expiryInfo.title}>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${expiryInfo.className} cursor-help`}>
                     {expiryInfo.label}
                 </span>
             </td>
@@ -100,16 +131,20 @@ const InventoryRow: React.FC<{
     );
 };
 
-
 export const InventoryPage: React.FC = () => {
     const [allProducts, setAllProducts] = useState<Product[]>([]);
+    const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
+    const [warehouseFilter, setWarehouseFilter] = useState('all');
+    const [expiryFilter, setExpiryFilter] = useState('all');
+    const [stockFilter, setStockFilter] = useState('all');
+
     const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-    const { expiryWarningDays } = useSettings();
+    const { expiryWarningDays, lowStockThreshold } = useSettings();
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [transferringProduct, setTransferringProduct] = useState<Product | null>(null);
     const [refreshKey, setRefreshKey] = useState(0);
@@ -123,20 +158,78 @@ export const InventoryPage: React.FC = () => {
     const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
-        const fetchProducts = async () => {
+        const fetchProductsAndWarehouses = async () => {
             if(!user) return;
             setLoading(true);
-            const data = await mockApi.getSellerProducts(user, { query: '' }, 1, 1000); // Fetch all for user scope
-            const stockableProducts = data.data.filter(p => p.trackStock);
+            
+            const [productsData, warehousesData] = await Promise.all([
+                mockApi.getSellerProducts(user, { query: '' }, 1, 1000),
+                mockApi.getVisibleWarehouses(user)
+            ]);
+            
+            const stockableProducts = productsData.data.filter(p => p.trackStock);
             setAllProducts(stockableProducts);
+            setWarehouses(warehousesData);
             setLoading(false);
         };
-        if (user) fetchProducts();
+        
+        if (user) fetchProductsAndWarehouses();
     }, [user, refreshKey]);
 
-    const filteredProducts = useMemo(() => {
-        return allProducts.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [allProducts, searchQuery]);
+    const { filteredProducts, counts } = useMemo(() => {
+        // 1. Base filtering (Search + Warehouse)
+        const baseFiltered = allProducts.filter(p => {
+            const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesWarehouse = warehouseFilter === 'all' || p.warehouseId === warehouseFilter;
+            return matchesSearch && matchesWarehouse;
+        });
+
+        // 2. Calculate counts based on baseFiltered to show relevant stats
+        const currentCounts = {
+            lowStock: 0,
+            outOfStock: 0,
+            expired: 0,
+            expiringSoon: 0
+        };
+
+        baseFiltered.forEach(p => {
+             const stock = p.stockLevel || 0;
+             if (stock <= lowStockThreshold) currentCounts.lowStock++;
+             if (stock === 0) currentCounts.outOfStock++;
+
+             const days = getDaysUntilExpiry(p.expiryDate);
+             if (days !== null) {
+                 if (days < 0) currentCounts.expired++;
+                 else if (days >= 0 && days <= expiryWarningDays) currentCounts.expiringSoon++;
+             }
+        });
+
+        // 3. Apply specific status filters
+        const finalResult = baseFiltered.filter(p => {
+            let matchesExpiry = true;
+            if (expiryFilter !== 'all') {
+                const days = getDaysUntilExpiry(p.expiryDate);
+                if (expiryFilter === 'expired') {
+                    matchesExpiry = days !== null && days < 0;
+                } else if (expiryFilter === 'expiring_soon') {
+                    matchesExpiry = days !== null && days >= 0 && days <= expiryWarningDays;
+                } else if (expiryFilter === 'valid') {
+                    matchesExpiry = days === null || days > expiryWarningDays;
+                }
+            }
+
+            let matchesStock = true;
+            if (stockFilter === 'low_stock') {
+                matchesStock = (p.stockLevel || 0) <= lowStockThreshold;
+            } else if (stockFilter === 'out_of_stock') {
+                matchesStock = (p.stockLevel || 0) === 0;
+            }
+
+            return matchesExpiry && matchesStock;
+        });
+
+        return { filteredProducts: finalResult, counts: currentCounts };
+    }, [allProducts, searchQuery, warehouseFilter, expiryFilter, stockFilter, expiryWarningDays, lowStockThreshold]);
 
     const limit = 10;
     const totalPages = Math.ceil(filteredProducts.length / limit);
@@ -144,6 +237,21 @@ export const InventoryPage: React.FC = () => {
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const handleWarehouseFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setWarehouseFilter(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const handleExpiryFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setExpiryFilter(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const handleStockFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setStockFilter(e.target.value);
         setCurrentPage(1);
     };
 
@@ -190,19 +298,87 @@ export const InventoryPage: React.FC = () => {
         setRefreshKey(k => k + 1);
     };
 
+    const handleExportCSV = () => {
+        if (filteredProducts.length === 0) {
+            alert("Não há dados para exportar.");
+            return;
+        }
+
+        const headers = ["Produto", "SKU", "Preço", "Armazém", "Stock Atual", "Lote", "Validade"];
+        
+        const csvRows = filteredProducts.map(p => {
+            const name = `"${p.name.replace(/"/g, '""')}"`;
+            const sku = `"${p.sku.replace(/"/g, '""')}"`;
+            const price = p.price;
+            const warehouse = `"${(p.warehouse?.name || '').replace(/"/g, '""')}"`;
+            const stock = p.stockLevel || 0;
+            const lot = `"${(p.lot || '').replace(/"/g, '""')}"`;
+            const expiry = `"${p.expiryDate || ''}"`;
+            
+            return [name, sku, price, warehouse, stock, lot, expiry].join(",");
+        });
+
+        const csvContent = [headers.join(","), ...csvRows].join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `inventario_export_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <>
             <div>
                 <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
                     <h1 className="text-3xl font-bold text-gray-800">Gestão de Inventário</h1>
-                    <div className="flex space-x-2 items-center">
+                    <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 w-full md:w-auto items-center">
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={handleSearchChange}
                             placeholder="Pesquisar por nome ou SKU..."
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
                         />
+                        <select 
+                            value={warehouseFilter}
+                            onChange={handleWarehouseFilterChange}
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
+                        >
+                            <option value="all">Todos Armazéns</option>
+                            {warehouses.map(wh => (
+                                <option key={wh.id} value={wh.id}>{wh.name}</option>
+                            ))}
+                        </select>
+                        <select
+                            value={expiryFilter}
+                            onChange={handleExpiryFilterChange}
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
+                        >
+                            <option value="all">Todas Validades</option>
+                            <option value="valid">Em Dia</option>
+                            <option value="expiring_soon">A Expirar ({counts.expiringSoon})</option>
+                            <option value="expired">Expirados ({counts.expired})</option>
+                        </select>
+                        <select
+                            value={stockFilter}
+                            onChange={handleStockFilterChange}
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
+                        >
+                            <option value="all">Todos Stocks</option>
+                            <option value="low_stock">Stock Baixo ({counts.lowStock})</option>
+                            <option value="out_of_stock">Sem Stock ({counts.outOfStock})</option>
+                        </select>
+                        <button 
+                            onClick={handleExportCSV}
+                            className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 flex items-center justify-center w-full md:w-auto h-[42px]"
+                            title="Exportar lista filtrada para CSV"
+                        >
+                            <DownloadIcon className="w-4 h-4 mr-2" />
+                            Exportar
+                        </button>
                     </div>
                 </div>
 
@@ -234,6 +410,7 @@ export const InventoryPage: React.FC = () => {
                                         expiryWarningDays={expiryWarningDays} 
                                         isActionMenuOpen={openActionMenuId === p.id}
                                         onToggleActionMenu={() => setOpenActionMenuId(prevId => (prevId === p.id ? null : p.id))}
+                                        lowStockThreshold={lowStockThreshold}
                                    />)
                                 ) : (
                                     <tr><td colSpan={6} className="text-center py-6">Nenhum produto encontrado.</td></tr>

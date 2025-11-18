@@ -1,24 +1,29 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { Product, ProductFilters, ProductKind, Warehouse } from '../../types';
 import mockApi from '../../services/mockApi';
 import { Pagination } from '../../components/Pagination';
 import { useCart } from '../../hooks/useCart';
+import { ProductDetailsModal } from '../../components/modals/ProductDetailsModal';
 
-const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
+const ProductCard: React.FC<{ product: Product, onClick: () => void }> = ({ product, onClick }) => {
     const { addToCart } = useCart();
 
     return (
         <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 group flex flex-col">
-            <div className="h-48 overflow-hidden">
+            <div className="h-48 overflow-hidden cursor-pointer" onClick={onClick}>
                 <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
             </div>
             <div className="p-4 flex flex-col flex-grow">
-                <h3 className="text-lg font-semibold text-gray-800 truncate flex-grow">{product.name}</h3>
-                <p className="text-sm text-gray-500 mb-3 h-10">{product.description}</p>
+                <h3 className="text-lg font-semibold text-gray-800 truncate flex-grow cursor-pointer hover:text-primary-600" onClick={onClick}>{product.name}</h3>
+                <p className="text-sm text-gray-500 mb-3 h-10 line-clamp-2">{product.description}</p>
                 <div className="flex justify-between items-center mt-auto">
                     <span className="text-xl font-bold text-primary-600">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}</span>
                     <button 
-                        onClick={() => addToCart(product)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(product);
+                        }}
                         className="bg-primary-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary-600 transition-colors"
                     >
                         Adicionar
@@ -83,6 +88,9 @@ export const MarketplaceBrowsePage: React.FC = () => {
     const [totalPages, setTotalPages] = useState(0);
     const [filters, setFilters] = useState<ProductFilters>({ kind: 'all', warehouseId: 'all', sortBy: 'name-asc', query: '' });
 
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
     const debouncedFilters = useMemo(() => filters, [filters]);
 
     useEffect(() => {
@@ -106,6 +114,11 @@ export const MarketplaceBrowsePage: React.FC = () => {
         setFilters(newFilters);
     };
 
+    const handleProductClick = (product: Product) => {
+        setSelectedProduct(product);
+        setIsDetailsModalOpen(true);
+    };
+
     return (
         <div>
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Marketplace</h1>
@@ -117,7 +130,11 @@ export const MarketplaceBrowsePage: React.FC = () => {
                 <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {products.map(product => (
-                            <ProductCard key={product.id} product={product} />
+                            <ProductCard 
+                                key={product.id} 
+                                product={product} 
+                                onClick={() => handleProductClick(product)}
+                            />
                         ))}
                     </div>
                     <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
@@ -128,6 +145,11 @@ export const MarketplaceBrowsePage: React.FC = () => {
                     <p className="text-gray-500 mt-2">Tente ajustar os seus filtros de pesquisa.</p>
                 </div>
             )}
+            <ProductDetailsModal 
+                product={selectedProduct} 
+                isOpen={isDetailsModalOpen} 
+                onClose={() => setIsDetailsModalOpen(false)} 
+            />
         </div>
     );
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSettings } from '../../hooks/useSettings';
 import { Company } from '../../types';
@@ -50,8 +51,9 @@ const CompanyNodeComponent: React.FC<{ node: CompanyNode, onAddSubCompany: (pare
 };
 
 export const SettingsPage: React.FC = () => {
-  const { expiryWarningDays, setExpiryWarningDays } = useSettings();
+  const { expiryWarningDays, lowStockThreshold, updateSettings } = useSettings();
   const [localWarningDays, setLocalWarningDays] = React.useState(expiryWarningDays);
+  const [localStockThreshold, setLocalStockThreshold] = React.useState(lowStockThreshold);
   const [saved, setSaved] = React.useState(false);
 
   const [companyTree, setCompanyTree] = useState<CompanyNode[]>([]);
@@ -71,9 +73,15 @@ export const SettingsPage: React.FC = () => {
     fetchCompanies();
   }, [refreshKey]);
 
+  // Update local state if context values change (e.g. initial load)
+  useEffect(() => {
+    setLocalWarningDays(expiryWarningDays);
+    setLocalStockThreshold(lowStockThreshold);
+  }, [expiryWarningDays, lowStockThreshold]);
+
 
   const handleSaveSettings = () => {
-    setExpiryWarningDays(localWarningDays);
+    updateSettings({ expiryWarningDays: localWarningDays, lowStockThreshold: localStockThreshold });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -132,7 +140,22 @@ export const SettingsPage: React.FC = () => {
                 className="mt-1 w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
-            <div className="flex items-center">
+            <div>
+              <label htmlFor="lowStockThreshold" className="block text-sm font-medium text-gray-700">
+                Limiar de Stock Baixo
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Produtos com quantidade igual ou inferior a este valor serão filtrados como "Stock Baixo".
+              </p>
+              <input
+                type="number"
+                id="lowStockThreshold"
+                value={localStockThreshold}
+                onChange={(e) => setLocalStockThreshold(parseInt(e.target.value, 10) || 0)}
+                className="mt-1 w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+            <div className="flex items-center pt-4">
               <button
                 onClick={handleSaveSettings}
                 className="px-4 py-2 bg-primary-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-primary-700 disabled:bg-primary-300"
