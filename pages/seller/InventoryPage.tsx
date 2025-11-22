@@ -8,7 +8,7 @@ import { AdjustStockModal } from '../../components/modals/AdjustStockModal';
 import { useSettings } from '../../hooks/useSettings';
 import { TransferStockModal } from '../../components/modals/TransferStockModal';
 import { WarehouseDetailsModal } from '../../components/modals/WarehouseDetailsModal';
-import { ChevronDownIcon, DownloadIcon } from '../../components/Icons';
+import { ChevronDownIcon, DownloadIcon, AlertTriangleIcon, XIcon } from '../../components/Icons';
 import { LotDetailsModal } from '../../components/modals/LotDetailsModal';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 
@@ -34,13 +34,14 @@ const getDaysUntilExpiry = (expiryDate?: string): number | null => {
     }
 };
 
-const getExpiryStatus = (expiryDate: string | undefined, warningDays: number): { className: string; label: string; isExpired: boolean; title: string } => {
+const getExpiryStatus = (expiryDate: string | undefined, warningDays: number): { className: string; label: string; isExpired: boolean; isExpiringSoon: boolean; title: string } => {
     const diffDays = getDaysUntilExpiry(expiryDate);
 
     if (diffDays === null) return { 
         className: 'bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/20', 
         label: expiryDate || 'N/A', 
         isExpired: false,
+        isExpiringSoon: false,
         title: 'Validade não aplicável'
     };
     
@@ -50,6 +51,7 @@ const getExpiryStatus = (expiryDate: string | undefined, warningDays: number): {
             className: 'bg-red-100 text-red-800 ring-1 ring-inset ring-red-600/20', 
             label: expiryDate!, 
             isExpired: true,
+            isExpiringSoon: false,
             title: `Expirou há ${days} dia${days !== 1 ? 's' : ''}`
         };
     }
@@ -58,6 +60,7 @@ const getExpiryStatus = (expiryDate: string | undefined, warningDays: number): {
             className: 'bg-yellow-100 text-yellow-800 ring-1 ring-inset ring-yellow-600/20', 
             label: expiryDate!, 
             isExpired: false,
+            isExpiringSoon: true,
             title: `Expira em ${diffDays} dia${diffDays !== 1 ? 's' : ''}`
         };
     }
@@ -65,6 +68,7 @@ const getExpiryStatus = (expiryDate: string | undefined, warningDays: number): {
         className: 'bg-green-100 text-green-800 ring-1 ring-inset ring-green-600/20', 
         label: expiryDate!, 
         isExpired: false,
+        isExpiringSoon: false,
         title: `Válido por mais ${diffDays} dias`
     };
 };
@@ -100,8 +104,11 @@ const InventoryRow: React.FC<{
             </td>
             <td className="py-3 px-6 text-sm text-gray-700">{product.lot || 'N/A'}</td>
             <td className="py-3 px-6 text-sm text-gray-700" title={expiryInfo.title}>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${expiryInfo.className} cursor-help`}>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${expiryInfo.className} cursor-help flex items-center w-fit`}>
                     {expiryInfo.label}
+                    {(expiryInfo.isExpired || expiryInfo.isExpiringSoon) && (
+                        <AlertTriangleIcon className="w-3 h-3 ml-1.5" />
+                    )}
                 </span>
             </td>
             <td className="py-3 px-6 text-sm">
@@ -255,6 +262,14 @@ export const InventoryPage: React.FC = () => {
         setCurrentPage(1);
     };
 
+    const handleClearFilters = () => {
+        setSearchQuery('');
+        setWarehouseFilter('all');
+        setExpiryFilter('all');
+        setStockFilter('all');
+        setCurrentPage(1);
+    };
+
     const handleOpenAdjustModal = (product: Product) => {
         setSelectedProduct(product);
         setIsAdjustModalOpen(true);
@@ -304,7 +319,7 @@ export const InventoryPage: React.FC = () => {
             return;
         }
 
-        const headers = ["Produto", "SKU", "Preço", "Armazém", "Stock Atual", "Lote", "Validade"];
+        const headers = ["Produto", "SKU", "Preço", "Armazém", "Stock Atual", "Lote", "Validade", "Estado"];
         
         const csvRows = filteredProducts.map(p => {
             const name = `"${p.name.replace(/"/g, '""')}"`;
@@ -315,7 +330,19 @@ export const InventoryPage: React.FC = () => {
             const lot = `"${(p.lot || '').replace(/"/g, '""')}"`;
             const expiry = `"${p.expiryDate || ''}"`;
             
-            return [name, sku, price, warehouse, stock, lot, expiry].join(",");
+            let status = "OK";
+            if (stock === 0) status = "Sem Stock";
+            else if (stock <= lowStockThreshold) status = "Stock Baixo";
+            
+            const days = getDaysUntilExpiry(p.expiryDate);
+            if (days !== null) {
+                if (days < 0) status = status === "OK" ? "Expirado" : `${status} / Expirado`;
+                else if (days <= expiryWarningDays) status = status === "OK" ? "A Expirar" : `${status} / A Expirar`;
+            }
+            
+            const statusCol = `"${status}"`;
+            
+            return [name, sku, price, warehouse, stock, lot, expiry, statusCol].join(",");
         });
 
         const csvContent = [headers.join(","), ...csvRows].join("\n");
@@ -328,6 +355,8 @@ export const InventoryPage: React.FC = () => {
         link.click();
         document.body.removeChild(link);
     };
+
+    const hasActiveFilters = searchQuery !== '' || warehouseFilter !== 'all' || expiryFilter !== 'all' || stockFilter !== 'all';
 
     return (
         <>
@@ -360,7 +389,7 @@ export const InventoryPage: React.FC = () => {
                             <option value="all">Todas Validades</option>
                             <option value="valid">Em Dia</option>
                             <option value="expiring_soon">A Expirar ({counts.expiringSoon})</option>
-                            <option value="expired">Expirados ({counts.expired})</option>
+                            <option value="expired">Expirado ({counts.expired})</option>
                         </select>
                         <select
                             value={stockFilter}
@@ -371,6 +400,7 @@ export const InventoryPage: React.FC = () => {
                             <option value="low_stock">Stock Baixo ({counts.lowStock})</option>
                             <option value="out_of_stock">Sem Stock ({counts.outOfStock})</option>
                         </select>
+                        
                         <button 
                             onClick={handleExportCSV}
                             className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 flex items-center justify-center w-full md:w-auto h-[42px]"
@@ -379,8 +409,29 @@ export const InventoryPage: React.FC = () => {
                             <DownloadIcon className="w-4 h-4 mr-2" />
                             Exportar
                         </button>
+                        
+                        {hasActiveFilters && (
+                            <button
+                                onClick={handleClearFilters}
+                                className="flex items-center px-3 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium border border-transparent hover:border-red-200"
+                                title="Limpar todos os filtros"
+                            >
+                                <XIcon className="w-4 h-4 mr-1" />
+                                Limpar
+                            </button>
+                        )}
                     </div>
                 </div>
+
+                {expiryFilter === 'expired' && counts.expired > 0 && (
+                     <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-md shadow-sm flex items-start">
+                        <AlertTriangleIcon className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-bold">Atenção: Visualizando produtos expirados</p>
+                            <p className="text-sm mt-1">Estes produtos não devem ser vendidos. Considere remover o lote ou ajustar o stock para zero.</p>
+                        </div>
+                    </div>
+                )}
 
                 <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     <div className="overflow-x-auto">
@@ -413,7 +464,7 @@ export const InventoryPage: React.FC = () => {
                                         lowStockThreshold={lowStockThreshold}
                                    />)
                                 ) : (
-                                    <tr><td colSpan={6} className="text-center py-6">Nenhum produto encontrado.</td></tr>
+                                    <tr><td colSpan={6} className="text-center py-6">Nenhum produto encontrado com os filtros atuais.</td></tr>
                                 )}
                             </tbody>
                         </table>

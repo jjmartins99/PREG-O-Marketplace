@@ -107,3 +107,9 @@ export const TagIcon: React.FC<IconProps> = ({ className }) => (
         <path d="M12.586 2.586a2 2 0 0 0-2.828 0L2 10.172V20h9.828l7.586-7.586a2 2 0 0 0 0-2.828L12.586 2.586z"></path><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"></circle>
     </svg>
 );
+
+export const AlertTriangleIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+);

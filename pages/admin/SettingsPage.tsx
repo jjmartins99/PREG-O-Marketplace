@@ -134,6 +134,7 @@ export const SettingsPage: React.FC = () => {
               </p>
               <input
                 type="number"
+                min="0"
                 id="expiryWarningDays"
                 value={localWarningDays}
                 onChange={(e) => setLocalWarningDays(parseInt(e.target.value, 10) || 0)}
@@ -149,6 +150,7 @@ export const SettingsPage: React.FC = () => {
               </p>
               <input
                 type="number"
+                min="0"
                 id="lowStockThreshold"
                 value={localStockThreshold}
                 onChange={(e) => setLocalStockThreshold(parseInt(e.target.value, 10) || 0)}

@@ -66,6 +66,28 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({ produc
       }
   };
 
+  const handleAddEquivalentBaseUnits = () => {
+      setError(null);
+      if (!selectedPackaging) return;
+      
+      const totalUnits = quantity * selectedPackaging.conversionFactor;
+      
+      const productToAdd = {
+          ...product,
+          price: product.price,
+          name: product.name
+      };
+      
+      // Add as base unit (variantId = '', conversionFactor = 1)
+      const result = addToCart(productToAdd, totalUnits, '', 1);
+      
+      if (result) {
+          setError(result);
+      } else {
+          onClose();
+      }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl flex flex-col md:flex-row overflow-hidden max-h-[90vh]">
@@ -97,21 +119,62 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({ produc
 
             <div className="mt-6 border-t pt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Selecione a Embalagem</label>
-                <div className="flex flex-wrap gap-2">
-                    <button
-                        className={`px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${selectedPackagingId === '' ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 hover:border-gray-300 text-gray-700'}`}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Default Unit Option */}
+                    <div 
                         onClick={() => setSelectedPackagingId('')}
+                        className={`relative rounded-lg border p-3 cursor-pointer flex flex-col transition-all ${
+                            selectedPackagingId === '' 
+                            ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500' 
+                            : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
+                        }`}
                     >
-                        Unidade ({product.unit})
-                    </button>
+                        <div className="flex justify-between items-start">
+                            <span className={`font-medium ${selectedPackagingId === '' ? 'text-primary-900' : 'text-gray-900'}`}>
+                                Unidade ({product.unit})
+                            </span>
+                            {selectedPackagingId === '' && (
+                                <div className="h-2 w-2 rounded-full bg-primary-600 absolute top-3 right-3"></div>
+                            )}
+                        </div>
+                        <div className="mt-1 text-xs text-gray-500">
+                            Base do produto
+                        </div>
+                        {product.barcode && (
+                            <div className="mt-2 pt-2 border-t border-gray-200/60 text-xs font-mono text-gray-400">
+                                EAN: {product.barcode}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Variants */}
                     {product.packaging?.map(pkg => (
-                        <button
+                        <div
                             key={pkg.id}
-                            className={`px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${selectedPackagingId === pkg.id ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 hover:border-gray-300 text-gray-700'}`}
                             onClick={() => setSelectedPackagingId(pkg.id)}
+                            className={`relative rounded-lg border p-3 cursor-pointer flex flex-col transition-all ${
+                                selectedPackagingId === pkg.id 
+                                ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500' 
+                                : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
+                            }`}
                         >
-                            {pkg.name} ({pkg.unit})
-                        </button>
+                            <div className="flex justify-between items-start">
+                                <span className={`font-medium ${selectedPackagingId === pkg.id ? 'text-primary-900' : 'text-gray-900'}`}>
+                                    {pkg.name} ({pkg.unit})
+                                </span>
+                                {selectedPackagingId === pkg.id && (
+                                    <div className="h-2 w-2 rounded-full bg-primary-600 absolute top-3 right-3"></div>
+                                )}
+                            </div>
+                            <div className="mt-1 text-xs text-gray-500">
+                                Contém {pkg.conversionFactor} {baseUnitName}
+                            </div>
+                             {pkg.barcode && (
+                                <div className="mt-2 pt-2 border-t border-gray-200/60 text-xs font-mono text-gray-400">
+                                    EAN: {pkg.barcode}
+                                </div>
+                            )}
+                        </div>
                     ))}
                 </div>
             </div>
@@ -125,19 +188,33 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({ produc
                         <span className="ml-2 text-sm text-gray-500">/ {selectedPackaging ? selectedPackaging.name : 'Unidade'}</span>
                     </div>
                     
-                    <div className="mt-2 pt-2 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center text-sm text-gray-600">
-                        <span className="font-medium mr-2">Preço por {baseUnitName}:</span>
-                        <span className="font-bold text-gray-800">
-                            {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(unitPrice)}
-                        </span>
-                         {selectedPackaging && (
-                            <span className="mt-1 sm:mt-0 sm:ml-auto text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full inline-block">
-                                Contém {selectedPackaging.conversionFactor} {baseUnitName}
+                    {/* Unit Price Comparison Section */}
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                        <div className="flex justify-between items-center mb-1">
+                             <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider">
+                                Preço por {baseUnitName}
+                            </p>
+                             {selectedPackaging && (
+                                <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
+                                    1 {selectedPackaging.unit} = {selectedPackaging.conversionFactor} {baseUnitName}
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex items-baseline">
+                             <span className="text-lg font-bold text-blue-900">
+                                {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(unitPrice)}
                             </span>
+                            <span className="text-sm text-blue-700 ml-1">/ {baseUnitName}</span>
+                        </div>
+                         {selectedPackaging && (
+                            <p className="text-xs text-blue-500 mt-1">
+                                Comparação: O preço base nesta embalagem.
+                            </p>
                         )}
                     </div>
+
                     {maxQty !== undefined && (
-                        <div className="mt-2 text-xs text-gray-500">
+                        <div className="mt-3 text-xs text-gray-500 text-right">
                             Stock disponível: <span className={maxQty < 5 ? 'text-red-600 font-bold' : 'font-semibold'}>{maxQty}</span> unidades nesta embalagem.
                         </div>
                     )}
@@ -165,6 +242,17 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({ produc
                         {maxQty !== undefined && maxQty < 1 ? 'Sem Stock' : 'Adicionar ao Carrinho'}
                     </button>
                 </div>
+                
+                {selectedPackaging && (
+                    <button
+                        onClick={handleAddEquivalentBaseUnits}
+                        className="mt-3 w-full flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                    >
+                        <span className="mr-1">Ou adicionar</span>
+                        <span className="font-bold text-gray-900 mx-1">{quantity * selectedPackaging.conversionFactor} {baseUnitName}</span>
+                        <span>(unidades soltas)</span>
+                    </button>
+                )}
             </div>
 
         </div>

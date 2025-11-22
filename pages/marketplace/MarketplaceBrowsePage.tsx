@@ -5,29 +5,57 @@ import mockApi from '../../services/mockApi';
 import { Pagination } from '../../components/Pagination';
 import { useCart } from '../../hooks/useCart';
 import { ProductDetailsModal } from '../../components/modals/ProductDetailsModal';
+import { EyeIcon, ShoppingCartIcon } from '../../components/Icons';
 
 const ProductCard: React.FC<{ product: Product, onClick: () => void }> = ({ product, onClick }) => {
     const { addToCart } = useCart();
 
     return (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 group flex flex-col">
-            <div className="h-48 overflow-hidden cursor-pointer" onClick={onClick}>
+        <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 group flex flex-col h-full">
+            <div className="h-48 overflow-hidden cursor-pointer relative flex-shrink-0" onClick={onClick}>
                 <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                {product.kind === ProductKind.SERVICE && (
+                    <span className="absolute top-2 right-2 bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-md">
+                        SERVIÇO
+                    </span>
+                )}
             </div>
             <div className="p-4 flex flex-col flex-grow">
-                <h3 className="text-lg font-semibold text-gray-800 truncate flex-grow cursor-pointer hover:text-primary-600" onClick={onClick}>{product.name}</h3>
+                <h3 className="text-lg font-semibold text-gray-800 truncate cursor-pointer hover:text-primary-600" onClick={onClick}>{product.name}</h3>
                 <p className="text-sm text-gray-500 mb-3 h-10 line-clamp-2">{product.description}</p>
-                <div className="flex justify-between items-center mt-auto">
-                    <span className="text-xl font-bold text-primary-600">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}</span>
-                    <button 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            addToCart(product);
-                        }}
-                        className="bg-primary-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary-600 transition-colors"
-                    >
-                        Adicionar
-                    </button>
+                
+                <div className="mt-auto">
+                    <div className="flex items-baseline mb-3">
+                         <span className="text-xl font-bold text-primary-600">
+                            {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}
+                         </span>
+                         <span className="text-xs text-gray-500 ml-1 font-medium">/ {product.unit}</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                         <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onClick();
+                            }}
+                            className="flex items-center justify-center bg-gray-100 text-gray-700 px-2 py-2 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors"
+                            title="Ver Detalhes"
+                        >
+                            <EyeIcon className="w-4 h-4 mr-1.5" />
+                            Detalhes
+                        </button>
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                addToCart(product);
+                            }}
+                            className="flex items-center justify-center bg-primary-500 text-white px-2 py-2 rounded-lg text-sm font-semibold hover:bg-primary-600 transition-colors"
+                            title="Adicionar ao Carrinho"
+                        >
+                            <ShoppingCartIcon className="w-4 h-4 mr-1.5" />
+                            Adicionar
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -58,7 +86,7 @@ const FilterPanel: React.FC<{ filters: ProductFilters, onFilterChange: (filters:
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                 />
             </div>
-            <div className="w-full md:w-auto flex gap-4">
+            <div className="w-full md:w-auto flex gap-4 flex-col sm:flex-row">
                 <select name="kind" value={filters.kind} onChange={handleInputChange} className="w-full md:w-40 px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
                     <option value="all">Todo Tipo</option>
                     <option value={ProductKind.GOOD}>Mercadoria</option>
@@ -96,7 +124,7 @@ export const MarketplaceBrowsePage: React.FC = () => {
     useEffect(() => {
         const fetchProducts = async () => {
             setLoading(true);
-            const limit = 8;
+            const limit = 10;
             const data = await mockApi.getProducts(debouncedFilters, currentPage, limit);
             setProducts(data.data);
             setTotalPages(Math.ceil(data.total / limit));
@@ -128,7 +156,7 @@ export const MarketplaceBrowsePage: React.FC = () => {
                  <div className="text-center py-10">A carregar produtos...</div>
             ) : products.length > 0 ? (
                 <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                         {products.map(product => (
                             <ProductCard 
                                 key={product.id} 
