@@ -8,9 +8,10 @@ import { AdjustStockModal } from '../../components/modals/AdjustStockModal';
 import { useSettings } from '../../hooks/useSettings';
 import { TransferStockModal } from '../../components/modals/TransferStockModal';
 import { WarehouseDetailsModal } from '../../components/modals/WarehouseDetailsModal';
-import { ChevronDownIcon, DownloadIcon, AlertTriangleIcon, XIcon } from '../../components/Icons';
+import { ChevronDownIcon, DownloadIcon, AlertTriangleIcon, XIcon, MapPinIcon } from '../../components/Icons';
 import { LotDetailsModal } from '../../components/modals/LotDetailsModal';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
+import { StockLocationModal } from '../../components/modals/StockLocationModal';
 
 const getDaysUntilExpiry = (expiryDate?: string): number | null => {
     if (!expiryDate) return null;
@@ -80,11 +81,13 @@ const InventoryRow: React.FC<{
     onViewWarehouseClick: (warehouse: Warehouse) => void;
     onViewLotClick: (product: Product) => void;
     onDeleteClick: (product: Product) => void;
+    onViewLocationsClick: (product: Product) => void;
+    otherLocationsCount: number;
     expiryWarningDays: number;
     isActionMenuOpen: boolean;
     onToggleActionMenu: () => void;
     lowStockThreshold: number;
-}> = ({ product, onAdjustClick, onTransferClick, onViewWarehouseClick, onViewLotClick, onDeleteClick, expiryWarningDays, isActionMenuOpen, onToggleActionMenu, lowStockThreshold }) => {
+}> = ({ product, onAdjustClick, onTransferClick, onViewWarehouseClick, onViewLotClick, onDeleteClick, onViewLocationsClick, otherLocationsCount, expiryWarningDays, isActionMenuOpen, onToggleActionMenu, lowStockThreshold }) => {
     const expiryInfo = getExpiryStatus(product.expiryDate, expiryWarningDays);
     const isLowStock = (product.stockLevel || 0) <= lowStockThreshold;
     
@@ -97,7 +100,21 @@ const InventoryRow: React.FC<{
                     <div className="text-xs text-gray-500">{product.sku}</div>
                 </div>
             </td>
-            <td className="py-3 px-6 text-sm text-gray-700">{product.warehouse ? `${product.warehouse.name} (${product.warehouse.type})` : 'N/A'}</td>
+            <td className="py-3 px-6 text-sm text-gray-700">
+                <div className="flex flex-col">
+                    <span>{product.warehouse ? `${product.warehouse.name}` : 'N/A'}</span>
+                    <span className="text-xs text-gray-500 mb-1">{product.warehouse ? product.warehouse.type : ''}</span>
+                    {otherLocationsCount > 0 && (
+                        <button 
+                            onClick={(e) => { e.preventDefault(); onViewLocationsClick(product); }}
+                            className="flex items-center text-xs font-semibold text-primary-600 hover:text-primary-800 hover:underline w-fit"
+                        >
+                            <MapPinIcon className="w-3 h-3 mr-1" />
+                            + {otherLocationsCount} {otherLocationsCount === 1 ? 'local' : 'locais'}
+                        </button>
+                    )}
+                </div>
+            </td>
             <td className="py-3 px-6 text-sm text-gray-700 font-bold text-center">
                 <span className={isLowStock ? 'text-red-600' : 'text-gray-700'}>{product.stockLevel}</span>
                 {isLowStock && <span className="block text-[10px] text-red-500 font-normal">Stock Baixo</span>}
@@ -126,6 +143,7 @@ const InventoryRow: React.FC<{
                                 <a href="#" onClick={(e) => { e.preventDefault(); onAdjustClick(product); onToggleActionMenu(); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Ajustar Stock</a>
                                 <a href="#" onClick={(e) => { e.preventDefault(); onTransferClick(product); onToggleActionMenu(); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Transferir Stock</a>
                                 {product.warehouse && <a href="#" onClick={(e) => { e.preventDefault(); onViewWarehouseClick(product.warehouse!); onToggleActionMenu(); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Ver Armazém</a>}
+                                {otherLocationsCount > 0 && <a href="#" onClick={(e) => { e.preventDefault(); onViewLocationsClick(product); onToggleActionMenu(); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Ver Locais ({otherLocationsCount + 1})</a>}
                                 {product.lot && <a href="#" onClick={(e) => { e.preventDefault(); onViewLotClick(product); onToggleActionMenu(); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Ver Lote</a>}
                                 <div className="border-t border-gray-100 my-1"></div>
                                 <a href="#" onClick={(e) => { e.preventDefault(); onDeleteClick(product); onToggleActionMenu(); }} className="block px-4 py-2 text-sm text-red-700 hover:bg-red-50" role="menuitem">Eliminar</a>
@@ -163,6 +181,10 @@ export const InventoryPage: React.FC = () => {
     const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    
+    // New state for location modal
+    const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+    const [selectedProductForLocation, setSelectedProductForLocation] = useState<Product | null>(null);
 
     useEffect(() => {
         const fetchProductsAndWarehouses = async () => {
@@ -312,6 +334,11 @@ export const InventoryPage: React.FC = () => {
         setProductToDelete(null);
         setRefreshKey(k => k + 1);
     };
+    
+    const handleViewLocations = (product: Product) => {
+        setSelectedProductForLocation(product);
+        setIsLocationModalOpen(true);
+    };
 
     const handleExportCSV = () => {
         if (filteredProducts.length === 0) {
@@ -450,19 +477,28 @@ export const InventoryPage: React.FC = () => {
                                 {loading ? (
                                     <tr><td colSpan={6} className="text-center py-6">A carregar inventário...</td></tr>
                                 ) : paginatedProducts.length > 0 ? (
-                                   paginatedProducts.map(p => <InventoryRow 
-                                        key={p.id} 
-                                        product={p} 
-                                        onAdjustClick={handleOpenAdjustModal} 
-                                        onTransferClick={handleOpenTransferModal} 
-                                        onViewWarehouseClick={handleViewWarehouseDetails} 
-                                        onViewLotClick={handleViewLotDetails}
-                                        onDeleteClick={handleOpenDeleteModal}
-                                        expiryWarningDays={expiryWarningDays} 
-                                        isActionMenuOpen={openActionMenuId === p.id}
-                                        onToggleActionMenu={() => setOpenActionMenuId(prevId => (prevId === p.id ? null : p.id))}
-                                        lowStockThreshold={lowStockThreshold}
-                                   />)
+                                   paginatedProducts.map(p => {
+                                       // Count how many other entries exist for this SKU
+                                       const otherLocationsCount = allProducts.filter(item => item.sku === p.sku && item.id !== p.id).length;
+                                       
+                                       return (
+                                       <InventoryRow 
+                                            key={p.id} 
+                                            product={p} 
+                                            onAdjustClick={handleOpenAdjustModal} 
+                                            onTransferClick={handleOpenTransferModal} 
+                                            onViewWarehouseClick={handleViewWarehouseDetails} 
+                                            onViewLotClick={handleViewLotDetails}
+                                            onDeleteClick={handleOpenDeleteModal}
+                                            onViewLocationsClick={handleViewLocations}
+                                            otherLocationsCount={otherLocationsCount}
+                                            expiryWarningDays={expiryWarningDays} 
+                                            isActionMenuOpen={openActionMenuId === p.id}
+                                            onToggleActionMenu={() => setOpenActionMenuId(prevId => (prevId === p.id ? null : p.id))}
+                                            lowStockThreshold={lowStockThreshold}
+                                       />
+                                       );
+                                   })
                                 ) : (
                                     <tr><td colSpan={6} className="text-center py-6">Nenhum produto encontrado com os filtros atuais.</td></tr>
                                 )}
@@ -494,6 +530,13 @@ export const InventoryPage: React.FC = () => {
                 isOpen={isLotDetailsOpen}
                 onClose={() => setIsLotDetailsOpen(false)}
                 product={selectedProductForLot}
+            />
+             <StockLocationModal
+                isOpen={isLocationModalOpen}
+                onClose={() => setIsLocationModalOpen(false)}
+                sku={selectedProductForLocation?.sku || ''}
+                productName={selectedProductForLocation?.name || ''}
+                allProducts={allProducts}
             />
             <ConfirmationModal
                 isOpen={isConfirmDeleteOpen}

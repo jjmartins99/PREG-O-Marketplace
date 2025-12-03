@@ -25,7 +25,7 @@ export const ShoppingCartIcon: React.FC<IconProps> = ({ className }) => (
 
 export const TruckIcon: React.FC<IconProps> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M10 17h4V5H2v12h3"></path><path d="M22 17h-4V5h4v12Z"></path><path d="M2 17H1v- पॉइंट"></path><path d="M14 17H1v- पॉइंट"></path><path d="M6 17v4"></path><path d="M10 17v4"></path><path d="M18 17v4"></path><path d="M22 17v4"></path><path d="M14 5h-4"></path><path d="M6 5H2"></path><path d="M22 5h-4"></path><path d="m14 17-2-3-2 3"></path><path d="m6 17-2-3-2 3"></path><path d="m22 17-2-3-2 3"></path><path d="M10 5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1"></path><path d="M18 5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1"></path>
+    <path d="M10 17h4V5H2v12h3"></path><path d="M22 17h-4V5h4v12Z"></path><path d="M2 17H1v- point"></path><path d="M14 17H1v- point"></path><path d="M6 17v4"></path><path d="M10 17v4"></path><path d="M18 17v4"></path><path d="M22 17v4"></path><path d="M14 5h-4"></path><path d="M6 5H2"></path><path d="M22 5h-4"></path><path d="m14 17-2-3-2 3"></path><path d="m6 17-2-3-2 3"></path><path d="m22 17-2-3-2 3"></path><path d="M10 5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1"></path><path d="M18 5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1"></path>
   </svg>
 );
 
@@ -111,5 +111,17 @@ export const TagIcon: React.FC<IconProps> = ({ className }) => (
 export const AlertTriangleIcon: React.FC<IconProps> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+);
+
+export const CheckCircleIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>
+    </svg>
+);
+
+export const MapPinIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle>
     </svg>
 );
