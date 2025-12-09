@@ -219,13 +219,11 @@ export const InventoryPage: React.FC = () => {
             outOfStock: 0,
             expired: 0,
             expiringSoon: 0,
-            insufficientStock: 0
         };
 
         baseFiltered.forEach(p => {
              const stock = p.stockLevel || 0;
              if (stock <= lowStockThreshold) currentCounts.lowStock++;
-             if (stock < lowStockThreshold) currentCounts.insufficientStock++;
              if (stock === 0) currentCounts.outOfStock++;
 
              const days = getDaysUntilExpiry(p.expiryDate);
@@ -254,8 +252,6 @@ export const InventoryPage: React.FC = () => {
                 matchesStock = (p.stockLevel || 0) <= lowStockThreshold;
             } else if (stockFilter === 'out_of_stock') {
                 matchesStock = (p.stockLevel || 0) === 0;
-            } else if (stockFilter === 'insufficient_stock') {
-                matchesStock = (p.stockLevel || 0) < lowStockThreshold;
             }
 
             return matchesExpiry && matchesStock;
@@ -415,4 +411,144 @@ export const InventoryPage: React.FC = () => {
                         <select
                             value={expiryFilter}
                             onChange={handleExpiryFilterChange}
-                            
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
+                        >
+                            <option value="all">Validade: Todos</option>
+                            <option value="valid">Válidos</option>
+                            <option value="expiring_soon">A Expirar Brevemente ({counts.expiringSoon})</option>
+                            <option value="expired">Expirado ({counts.expired})</option>
+                        </select>
+                        <select
+                            value={stockFilter}
+                            onChange={handleStockFilterChange}
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
+                        >
+                            <option value="all">Stock: Todos</option>
+                            <option value="low_stock">Stock Baixo ({counts.lowStock})</option>
+                            <option value="out_of_stock">Sem Stock ({counts.outOfStock})</option>
+                        </select>
+                         {hasActiveFilters && (
+                            <button
+                                onClick={handleClearFilters}
+                                className="px-4 py-2 text-sm text-red-600 hover:text-red-800 hover:underline"
+                            >
+                                Limpar Filtros
+                            </button>
+                        )}
+                        <button
+                            onClick={handleExportCSV}
+                            className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 w-full md:w-auto"
+                            title="Exportar lista filtrada para CSV"
+                        >
+                            <DownloadIcon className="w-5 h-5 md:mr-2" />
+                            <span className="md:inline">Exportar</span>
+                        </button>
+                    </div>
+                </div>
+
+                {expiryFilter === 'expired' && (
+                    <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <AlertTriangleIcon className="h-5 w-5 text-red-400" />
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm text-red-700">
+                                    Está a visualizar produtos expirados. Considere remover estes itens do inventário ou ajustá-los.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full bg-white">
+                            <thead className="bg-gray-100">
+                                <tr>
+                                    <th className="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Produto</th>
+                                    <th className="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Armazém / Local</th>
+                                    <th className="py-3 px-6 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Stock</th>
+                                    <th className="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Lote</th>
+                                    <th className="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Validade</th>
+                                    <th className="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-gray-600 text-sm font-light">
+                                {loading ? (
+                                    <tr><td colSpan={6} className="text-center py-6">A carregar inventário...</td></tr>
+                                ) : paginatedProducts.length > 0 ? (
+                                   paginatedProducts.map(p => {
+                                       // Check for same SKU in other warehouses/locations
+                                       const otherLocationsCount = allProducts.filter(op => op.sku === p.sku && op.id !== p.id).length;
+                                       
+                                       return (
+                                           <InventoryRow 
+                                                key={p.id} 
+                                                product={p} 
+                                                onAdjustClick={handleOpenAdjustModal}
+                                                onTransferClick={handleOpenTransferModal}
+                                                onViewWarehouseClick={handleViewWarehouseDetails}
+                                                onViewLotClick={handleViewLotDetails}
+                                                onDeleteClick={handleOpenDeleteModal}
+                                                onViewLocationsClick={handleViewLocations}
+                                                otherLocationsCount={otherLocationsCount}
+                                                expiryWarningDays={expiryWarningDays}
+                                                isActionMenuOpen={openActionMenuId === p.id}
+                                                onToggleActionMenu={() => setOpenActionMenuId(openActionMenuId === p.id ? null : p.id)}
+                                                lowStockThreshold={lowStockThreshold}
+                                           />
+                                       );
+                                   })
+                                ) : (
+                                    <tr><td colSpan={6} className="text-center py-6">Nenhum produto encontrado.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    {filteredProducts.length > 0 && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />}
+                </div>
+            </div>
+            
+            <AdjustStockModal 
+                product={selectedProduct} 
+                isOpen={isAdjustModalOpen} 
+                onClose={() => setIsAdjustModalOpen(false)}
+                onStockUpdated={handleStockUpdated}
+            />
+            <TransferStockModal 
+                product={transferringProduct}
+                user={user}
+                isOpen={isTransferModalOpen}
+                onClose={() => setIsTransferModalOpen(false)}
+                onStockTransferred={handleStockTransferred}
+            />
+            <WarehouseDetailsModal
+                warehouse={selectedWarehouse}
+                isOpen={isWarehouseDetailsOpen}
+                onClose={() => setIsWarehouseDetailsOpen(false)}
+            />
+            <LotDetailsModal
+                product={selectedProductForLot}
+                isOpen={isLotDetailsOpen}
+                onClose={() => setIsLotDetailsOpen(false)}
+            />
+            <StockLocationModal
+                sku={selectedProductForLocation?.sku || ''}
+                productName={selectedProductForLocation?.name || ''}
+                allProducts={allProducts}
+                isOpen={isLocationModalOpen}
+                onClose={() => setIsLocationModalOpen(false)}
+            />
+            <ConfirmationModal
+                isOpen={isConfirmDeleteOpen}
+                onClose={() => setIsConfirmDeleteOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="Eliminar Produto"
+                message={`Tem a certeza que deseja eliminar o produto "${productToDelete?.name}" do inventário? Esta ação é irreversível.`}
+                confirmText="Eliminar"
+                isConfirming={isDeleting}
+            />
+        </>
+    );
+};
