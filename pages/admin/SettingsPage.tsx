@@ -124,47 +124,60 @@ export const SettingsPage: React.FC = () => {
 
         <div className="bg-white rounded-lg shadow-md p-6 max-w-2xl">
           <h2 className="text-xl font-semibold text-gray-700 mb-4">Parâmetros de Inventário</h2>
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
               <label htmlFor="expiryWarningDays" className="block text-sm font-medium text-gray-700">
-                Dias para alerta de validade
+                Aviso de Validade ('A Expirar Brevemente')
               </label>
               <p className="text-xs text-gray-500 mb-2">
-                Os produtos serão marcados a amarelo no inventário quando estiverem a X dias de expirar.
+                Defina com quantos dias de antecedência os produtos devem ser marcados como "A Expirar Brevemente" (Alerta Amarelo).
               </p>
-              <input
-                type="number"
-                min="0"
-                id="expiryWarningDays"
-                value={localWarningDays}
-                onChange={(e) => setLocalWarningDays(parseInt(e.target.value, 10) || 0)}
-                className="mt-1 w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              />
+              <div className="flex items-center">
+                  <input
+                    type="number"
+                    min="0"
+                    id="expiryWarningDays"
+                    value={localWarningDays}
+                    onChange={(e) => setLocalWarningDays(parseInt(e.target.value, 10) || 0)}
+                    className="mt-1 w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-center"
+                  />
+                  <span className="ml-3 text-sm text-gray-600">dias</span>
+              </div>
             </div>
-            <div>
+
+            <div className="border-t pt-4">
               <label htmlFor="lowStockThreshold" className="block text-sm font-medium text-gray-700">
                 Limiar de Stock Baixo
               </label>
               <p className="text-xs text-gray-500 mb-2">
-                Produtos com quantidade igual ou inferior a este valor serão filtrados como "Stock Baixo".
+                Produtos com quantidade igual ou inferior a este valor serão considerados com "Stock Baixo" e receberão destaque no inventário.
               </p>
-              <input
-                type="number"
-                min="0"
-                id="lowStockThreshold"
-                value={localStockThreshold}
-                onChange={(e) => setLocalStockThreshold(parseInt(e.target.value, 10) || 0)}
-                className="mt-1 w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              />
+              <div className="flex items-center">
+                  <input
+                    type="number"
+                    min="0"
+                    id="lowStockThreshold"
+                    value={localStockThreshold}
+                    onChange={(e) => setLocalStockThreshold(parseInt(e.target.value, 10) || 0)}
+                    className="mt-1 w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-center"
+                  />
+                  <span className="ml-3 text-sm text-gray-600">unidades</span>
+              </div>
             </div>
+
             <div className="flex items-center pt-4">
               <button
                 onClick={handleSaveSettings}
-                className="px-4 py-2 bg-primary-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-primary-700 disabled:bg-primary-300"
+                className="px-4 py-2 bg-primary-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-primary-700 disabled:bg-primary-300 transition-colors"
               >
                 Guardar Alterações
               </button>
-              {saved && <span className="ml-4 text-green-600 text-sm">Guardado com sucesso!</span>}
+              {saved && (
+                  <span className="ml-4 flex items-center text-green-600 text-sm animate-fade-in">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                      Configurações guardadas!
+                  </span>
+              )}
             </div>
           </div>
         </div>
