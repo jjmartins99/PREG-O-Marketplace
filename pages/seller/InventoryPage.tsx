@@ -8,7 +8,7 @@ import { AdjustStockModal } from '../../components/modals/AdjustStockModal';
 import { useSettings } from '../../hooks/useSettings';
 import { TransferStockModal } from '../../components/modals/TransferStockModal';
 import { WarehouseDetailsModal } from '../../components/modals/WarehouseDetailsModal';
-import { ChevronDownIcon, DownloadIcon, AlertTriangleIcon, XIcon, MapPinIcon } from '../../components/Icons';
+import { ChevronDownIcon, DownloadIcon, AlertTriangleIcon, XIcon, MapPinIcon, BellIcon, CheckCircleIcon } from '../../components/Icons';
 import { LotDetailsModal } from '../../components/modals/LotDetailsModal';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 import { StockLocationModal } from '../../components/modals/StockLocationModal';
@@ -182,9 +182,17 @@ export const InventoryPage: React.FC = () => {
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     
+    // Notification State
+    const [notification, setNotification] = useState<{message: string, type: 'success' | 'warning'} | null>(null);
+    
     // New state for location modal
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
     const [selectedProductForLocation, setSelectedProductForLocation] = useState<Product | null>(null);
+
+    const showNotification = (message: string, type: 'success' | 'warning') => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), 4000);
+    };
 
     useEffect(() => {
         const fetchProductsAndWarehouses = async () => {
@@ -299,6 +307,22 @@ export const InventoryPage: React.FC = () => {
 
     const handleStockUpdated = (updatedProduct: Product) => {
         setAllProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+        
+        // Auto-trigger notification if stock drops below threshold
+        if ((updatedProduct.stockLevel || 0) <= lowStockThreshold) {
+            showNotification(`Alerta: O stock de "${updatedProduct.name}" ficou abaixo do limite (${updatedProduct.stockLevel} un).`, 'warning');
+        } else {
+            showNotification(`Stock de "${updatedProduct.name}" atualizado com sucesso.`, 'success');
+        }
+    };
+
+    const handleNotifyLowStock = () => {
+        const lowStockCount = counts.lowStock + counts.outOfStock;
+        if (lowStockCount > 0) {
+            showNotification(`Notificação enviada: ${lowStockCount} produtos com stock baixo ou esgotado identificados.`, 'success');
+        } else {
+            showNotification('Inventário saudável! Nenhum alerta necessário.', 'success');
+        }
     };
 
     const handleOpenTransferModal = (product: Product) => {
@@ -306,8 +330,17 @@ export const InventoryPage: React.FC = () => {
         setIsTransferModalOpen(true);
     };
 
-    const handleStockTransferred = () => {
+    const handleStockTransferred = (sourceProduct: Product, quantitySent: number) => {
         setRefreshKey(oldKey => oldKey + 1);
+        
+        const currentStock = sourceProduct.stockLevel || 0;
+        const newStock = currentStock - quantitySent;
+
+        if (newStock <= lowStockThreshold) {
+            showNotification(`Alerta: O stock de "${sourceProduct.name}" ficou abaixo do limite (${newStock} un).`, 'warning');
+        } else {
+            showNotification('Transferência de stock realizada com sucesso.', 'success');
+        }
     };
 
     const handleViewWarehouseDetails = (warehouse: Warehouse) => {
@@ -333,6 +366,7 @@ export const InventoryPage: React.FC = () => {
         setIsConfirmDeleteOpen(false);
         setProductToDelete(null);
         setRefreshKey(k => k + 1);
+        showNotification('Produto removido com sucesso.', 'success');
     };
     
     const handleViewLocations = (product: Product) => {
@@ -387,7 +421,7 @@ export const InventoryPage: React.FC = () => {
 
     return (
         <>
-            <div>
+            <div className="relative">
                 <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
                     <h1 className="text-3xl font-bold text-gray-800">Gestão de Inventário</h1>
                     <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 w-full md:w-auto items-center">
@@ -443,20 +477,57 @@ export const InventoryPage: React.FC = () => {
                             <DownloadIcon className="w-5 h-5 md:mr-2" />
                             <span className="md:inline">Exportar</span>
                         </button>
+                        <button
+                            onClick={handleNotifyLowStock}
+                            className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 w-full md:w-auto ml-2"
+                            title="Enviar alerta de stock baixo"
+                        >
+                            <BellIcon className="w-5 h-5 md:mr-2" />
+                            <span className="md:inline">Alertar Stock</span>
+                        </button>
                     </div>
                 </div>
 
-                {expiryFilter === 'expired' && (
-                    <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
-                        <div className="flex">
+                {counts.expired > 0 && expiryFilter !== 'expired' && (
+                    <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg shadow-sm flex flex-col md:flex-row justify-between items-center animate-fade-in">
+                        <div className="flex items-center mb-4 md:mb-0">
                             <div className="flex-shrink-0">
-                                <AlertTriangleIcon className="h-5 w-5 text-red-400" />
+                                <AlertTriangleIcon className="h-5 w-5 text-red-500" />
                             </div>
                             <div className="ml-3">
-                                <p className="text-sm text-red-700">
-                                    Está a visualizar produtos expirados. Considere remover estes itens do inventário ou ajustá-los.
+                                <p className="text-sm font-medium text-red-800">
+                                    Atenção: Foram encontrados <span className="font-bold">{counts.expired}</span> produtos expirados na lista atual.
                                 </p>
                             </div>
+                        </div>
+                        <button
+                            onClick={() => setExpiryFilter('expired')}
+                            className="w-full md:w-auto ml-0 md:ml-4 px-4 py-2 bg-red-100 text-red-800 text-sm font-semibold rounded hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors whitespace-nowrap"
+                        >
+                            Ver Expirados
+                        </button>
+                    </div>
+                )}
+
+                {expiryFilter === 'expired' && (
+                    <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                        <div className="flex justify-between items-center">
+                            <div className="flex">
+                                <div className="flex-shrink-0">
+                                    <AlertTriangleIcon className="h-5 w-5 text-red-400" />
+                                </div>
+                                <div className="ml-3">
+                                    <p className="text-sm text-red-700">
+                                        Está a visualizar produtos expirados. Considere remover estes itens do inventário ou ajustá-los.
+                                    </p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setExpiryFilter('all')}
+                                className="text-sm text-red-700 underline hover:text-red-900 whitespace-nowrap ml-4"
+                            >
+                                Limpar Filtro
+                            </button>
                         </div>
                     </div>
                 )}
@@ -508,6 +579,19 @@ export const InventoryPage: React.FC = () => {
                     </div>
                     {filteredProducts.length > 0 && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />}
                 </div>
+
+                {notification && (
+                    <div className={`fixed bottom-4 right-4 px-6 py-4 rounded-lg shadow-lg text-white z-50 flex items-center animate-fade-in ${
+                        notification.type === 'warning' ? 'bg-yellow-500' : 'bg-green-600'
+                    }`}>
+                        {notification.type === 'warning' ? <AlertTriangleIcon className="w-6 h-6 mr-3" /> : <CheckCircleIcon className="w-6 h-6 mr-3" />}
+                        <div>
+                            <h4 className="font-bold">{notification.type === 'warning' ? 'Alerta de Stock' : 'Sucesso'}</h4>
+                            <p>{notification.message}</p>
+                        </div>
+                        <button onClick={() => setNotification(null)} className="ml-4 hover:text-gray-200"><XIcon className="w-4 h-4" /></button>
+                    </div>
+                )}
             </div>
             
             <AdjustStockModal 

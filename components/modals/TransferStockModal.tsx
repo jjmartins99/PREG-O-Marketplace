@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Product, Warehouse, User } from '../../types';
 import { XIcon } from '../Icons';
@@ -8,7 +9,7 @@ interface TransferStockModalProps {
   user: User | null;
   isOpen: boolean;
   onClose: () => void;
-  onStockTransferred: () => void;
+  onStockTransferred: (product: Product, quantity: number) => void;
 }
 
 export const TransferStockModal: React.FC<TransferStockModalProps> = ({ product, user, isOpen, onClose, onStockTransferred }) => {
@@ -52,7 +53,7 @@ export const TransferStockModal: React.FC<TransferStockModalProps> = ({ product,
     const success = await mockApi.transferStock(product.id, destinationWarehouseId, quantity);
     
     if (success) {
-        onStockTransferred();
+        onStockTransferred(product, quantity);
         onClose();
     } else {
         setError('Ocorreu um erro ao transferir o stock. Tente novamente.');
