@@ -91,8 +91,16 @@ const InventoryRow: React.FC<{
     const expiryInfo = getExpiryStatus(product.expiryDate, expiryWarningDays);
     const isLowStock = (product.stockLevel || 0) <= lowStockThreshold;
     
+    // Determine row background color based on status priorities
+    let rowBgClass = 'hover:bg-gray-50';
+    if (expiryInfo.isExpired) {
+        rowBgClass = 'bg-red-50 hover:bg-red-100';
+    } else if (isLowStock) {
+        rowBgClass = 'bg-orange-50 hover:bg-orange-100';
+    }
+
     return (
-        <tr className={`border-b ${expiryInfo.isExpired ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'} transition-colors duration-150`}>
+        <tr className={`border-b ${rowBgClass} transition-colors duration-150`}>
             <td className="py-3 px-6 text-sm text-gray-700 flex items-center">
                 <img src={product.imageUrl} alt={product.name} className="w-10 h-10 rounded-md object-cover mr-4"/>
                 <div>
@@ -282,16 +290,6 @@ export const InventoryPage: React.FC = () => {
         setCurrentPage(1);
     };
 
-    const handleExpiryFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setExpiryFilter(e.target.value);
-        setCurrentPage(1);
-    };
-
-    const handleStockFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setStockFilter(e.target.value);
-        setCurrentPage(1);
-    };
-
     const handleClearFilters = () => {
         setSearchQuery('');
         setWarehouseFilter('all');
@@ -419,72 +417,139 @@ export const InventoryPage: React.FC = () => {
 
     const hasActiveFilters = searchQuery !== '' || warehouseFilter !== 'all' || expiryFilter !== 'all' || stockFilter !== 'all';
 
+    const FilterPill: React.FC<{ 
+        label: string; 
+        active: boolean; 
+        onClick: () => void; 
+        count?: number;
+        colorClass?: string;
+    }> = ({ label, active, onClick, count, colorClass }) => (
+        <button
+            onClick={onClick}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border ${
+                active 
+                    ? `bg-gray-800 text-white border-gray-800 shadow-sm` 
+                    : `bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50`
+            } ${colorClass && count && count > 0 && !active ? colorClass : ''} whitespace-nowrap`}
+        >
+            {label}
+            {count !== undefined && count > 0 && (
+                <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] ${active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                    {count}
+                </span>
+            )}
+        </button>
+    );
+
     return (
         <>
             <div className="relative">
-                <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
-                    <h1 className="text-3xl font-bold text-gray-800">Gestão de Inventário</h1>
-                    <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 w-full md:w-auto items-center">
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={handleSearchChange}
-                            placeholder="Pesquisar por nome ou SKU..."
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
-                        />
-                        <select 
-                            value={warehouseFilter}
-                            onChange={handleWarehouseFilterChange}
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
-                        >
-                            <option value="all">Todos Armazéns</option>
-                            {warehouses.map(wh => (
-                                <option key={wh.id} value={wh.id}>{wh.name}</option>
-                            ))}
-                        </select>
-                        <select
-                            value={expiryFilter}
-                            onChange={handleExpiryFilterChange}
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
-                        >
-                            <option value="all">Validade: Todos</option>
-                            <option value="valid">Válidos</option>
-                            <option value="expiring_soon">A Expirar Brevemente ({counts.expiringSoon})</option>
-                            <option value="expired">Expirado ({counts.expired})</option>
-                        </select>
-                        <select
-                            value={stockFilter}
-                            onChange={handleStockFilterChange}
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
-                        >
-                            <option value="all">Stock: Todos</option>
-                            <option value="low_stock">Stock Baixo ({counts.lowStock})</option>
-                            <option value="out_of_stock">Sem Stock ({counts.outOfStock})</option>
-                        </select>
-                         {hasActiveFilters && (
-                            <button
-                                onClick={handleClearFilters}
-                                className="px-4 py-2 text-sm text-red-600 hover:text-red-800 hover:underline"
+                <div className="flex flex-col gap-4 mb-6">
+                    <div className="flex justify-between items-center flex-wrap gap-4">
+                        <h1 className="text-3xl font-bold text-gray-800">Gestão de Inventário</h1>
+                        <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 w-full md:w-auto items-center">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={handleSearchChange}
+                                placeholder="Pesquisar por nome ou SKU..."
+                                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
+                            />
+                            <select 
+                                value={warehouseFilter}
+                                onChange={handleWarehouseFilterChange}
+                                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
                             >
-                                Limpar Filtros
-                            </button>
-                        )}
-                        <button
-                            onClick={handleExportCSV}
-                            className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 w-full md:w-auto"
-                            title="Exportar lista filtrada para CSV"
-                        >
-                            <DownloadIcon className="w-5 h-5 md:mr-2" />
-                            <span className="md:inline">Exportar</span>
-                        </button>
-                        <button
-                            onClick={handleNotifyLowStock}
-                            className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 w-full md:w-auto ml-2"
-                            title="Enviar alerta de stock baixo"
-                        >
-                            <BellIcon className="w-5 h-5 md:mr-2" />
-                            <span className="md:inline">Alertar Stock</span>
-                        </button>
+                                <option value="all">Todos Armazéns</option>
+                                {warehouses.map(wh => (
+                                    <option key={wh.id} value={wh.id}>{wh.name}</option>
+                                ))}
+                            </select>
+                            
+                            {hasActiveFilters && (
+                                <button
+                                    onClick={handleClearFilters}
+                                    className="px-4 py-2 text-sm text-red-600 hover:text-red-800 hover:underline whitespace-nowrap"
+                                >
+                                    Limpar Filtros
+                                </button>
+                            )}
+                            <div className="flex space-x-2 w-full md:w-auto">
+                                <button
+                                    onClick={handleExportCSV}
+                                    className="flex-1 md:flex-none flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                    title="Exportar lista filtrada para CSV"
+                                >
+                                    <DownloadIcon className="w-5 h-5 md:mr-2" />
+                                    <span className="md:inline">Exportar</span>
+                                </button>
+                                <button
+                                    onClick={handleNotifyLowStock}
+                                    className="flex-1 md:flex-none flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                    title="Enviar alerta de stock baixo"
+                                >
+                                    <BellIcon className="w-5 h-5 md:mr-2" />
+                                    <span className="md:inline">Alertar</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Quick Filters Bar */}
+                    <div className="flex flex-col sm:flex-row gap-4 py-2 overflow-x-auto pb-4 sm:pb-2">
+                        <div className="flex items-center space-x-2">
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mr-1">Validade:</span>
+                            <FilterPill 
+                                label="Todos" 
+                                active={expiryFilter === 'all'} 
+                                onClick={() => { setExpiryFilter('all'); setCurrentPage(1); }} 
+                            />
+                            <FilterPill 
+                                label="Válidos" 
+                                active={expiryFilter === 'valid'} 
+                                onClick={() => { setExpiryFilter('valid'); setCurrentPage(1); }}
+                                colorClass="text-green-700 bg-green-50 border-green-200"
+                            />
+                            <FilterPill 
+                                label="A Expirar" 
+                                active={expiryFilter === 'expiring_soon'} 
+                                onClick={() => { setExpiryFilter('expiring_soon'); setCurrentPage(1); }}
+                                count={counts.expiringSoon}
+                                colorClass="text-yellow-700 bg-yellow-50 border-yellow-200"
+                            />
+                            <FilterPill 
+                                label="Expirados" 
+                                active={expiryFilter === 'expired'} 
+                                onClick={() => { setExpiryFilter('expired'); setCurrentPage(1); }}
+                                count={counts.expired}
+                                colorClass="text-red-700 bg-red-50 border-red-200"
+                            />
+                        </div>
+
+                        <div className="hidden sm:block w-px bg-gray-300 h-6"></div>
+
+                        <div className="flex items-center space-x-2">
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mr-1">Stock:</span>
+                             <FilterPill 
+                                label="Todos" 
+                                active={stockFilter === 'all'} 
+                                onClick={() => { setStockFilter('all'); setCurrentPage(1); }} 
+                            />
+                            <FilterPill 
+                                label="Stock Baixo" 
+                                active={stockFilter === 'low_stock'} 
+                                onClick={() => { setStockFilter('low_stock'); setCurrentPage(1); }}
+                                count={counts.lowStock}
+                                colorClass="text-orange-700 bg-orange-50 border-orange-200"
+                            />
+                             <FilterPill 
+                                label="Sem Stock" 
+                                active={stockFilter === 'out_of_stock'} 
+                                onClick={() => { setStockFilter('out_of_stock'); setCurrentPage(1); }}
+                                count={counts.outOfStock}
+                                colorClass="text-gray-700 bg-gray-100 border-gray-300"
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -501,7 +566,7 @@ export const InventoryPage: React.FC = () => {
                             </div>
                         </div>
                         <button
-                            onClick={() => setExpiryFilter('expired')}
+                            onClick={() => { setExpiryFilter('expired'); setCurrentPage(1); }}
                             className="w-full md:w-auto ml-0 md:ml-4 px-4 py-2 bg-red-100 text-red-800 text-sm font-semibold rounded hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors whitespace-nowrap"
                         >
                             Ver Expirados
@@ -523,7 +588,7 @@ export const InventoryPage: React.FC = () => {
                                 </div>
                             </div>
                             <button 
-                                onClick={() => setExpiryFilter('all')}
+                                onClick={() => { setExpiryFilter('all'); setCurrentPage(1); }}
                                 className="text-sm text-red-700 underline hover:text-red-900 whitespace-nowrap ml-4"
                             >
                                 Limpar Filtro
@@ -581,7 +646,7 @@ export const InventoryPage: React.FC = () => {
                 </div>
 
                 {notification && (
-                    <div className={`fixed bottom-4 right-4 px-6 py-4 rounded-lg shadow-lg text-white z-50 flex items-center animate-fade-in ${
+                    <div className={`fixed bottom-4 right-4 px-6 py-4 rounded-lg shadow-lg text-white z-50 flex items-center transition-all duration-500 transform translate-y-0 opacity-100 ${
                         notification.type === 'warning' ? 'bg-yellow-500' : 'bg-green-600'
                     }`}>
                         {notification.type === 'warning' ? <AlertTriangleIcon className="w-6 h-6 mr-3" /> : <CheckCircleIcon className="w-6 h-6 mr-3" />}
