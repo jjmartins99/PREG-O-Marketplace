@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Product, ProductKind, Warehouse, User } from '../../types';
 import { XIcon, SparklesIcon } from '../Icons';
@@ -12,7 +13,8 @@ interface ProductFormModalProps {
   onSave: (product: Product) => void;
 }
 
-const initialFormState: Omit<Product, 'id' | 'imageUrl' | 'packaging' | 'warehouse'> = {
+// Fix: Added 'createdAt' to Omit because it's not managed via the form (handled by API)
+const initialFormState: Omit<Product, 'id' | 'imageUrl' | 'packaging' | 'warehouse' | 'createdAt'> = {
     name: '',
     description: '',
     sku: '',
@@ -32,7 +34,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, use
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [errors, setErrors] = useState<{ stockLevel?: string }>({});
+  const [errors, setErrors] = useState<{ stockLevel?: string; warehouseId?: string }>({});
 
   useEffect(() => {
     if (isOpen) {
@@ -41,10 +43,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, use
                 setWarehouses(whs);
                 if (product) {
                     // Editing existing product
-                    const { id, imageUrl, packaging, warehouse, ...editableFields } = product;
+                    // Fix: Explicitly exclude 'createdAt' from the product fields when setting form state
+                    const { id, imageUrl, packaging, warehouse, createdAt, ...editableFields } = product;
                     setFormData(editableFields);
                 } else {
-                    // Adding new product - set default warehouse
+                    // Adding new product - force user to select warehouse or use first one
                     setFormData({...initialFormState, warehouseId: whs[0]?.id || '' });
                 }
             });
@@ -56,9 +59,14 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, use
   if (!isOpen) return null;
 
   const validate = () => {
-    const newErrors: { stockLevel?: string } = {};
-    if (formData.trackStock && (formData.stockLevel || 0) < 0) {
-        newErrors.stockLevel = 'O stock não pode ser negativo.';
+    const newErrors: { stockLevel?: string; warehouseId?: string } = {};
+    if (formData.trackStock) {
+        if ((formData.stockLevel || 0) < 0) {
+            newErrors.stockLevel = 'O stock não pode ser negativo.';
+        }
+        if (!formData.warehouseId) {
+            newErrors.warehouseId = 'A seleção do armazém é obrigatória para produtos com stock.';
+        }
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -97,7 +105,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, use
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const prompt = `Gere uma descrição de marketing curta e apelativa para o seguinte produto: "${formData.name}". A descrição deve ter no máximo 2 frases e ser em Português de Angola.`;
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-flash-preview',
             contents: prompt,
         });
         
@@ -205,10 +213,20 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, use
                         </div>
                         
                         <div>
-                            <label htmlFor="warehouseId" className="block text-sm font-medium text-gray-700">Armazém</label>
-                            <select name="warehouseId" id="warehouseId" value={formData.warehouseId} onChange={handleChange} className="mt-1 w-full input-style">
+                            <label htmlFor="warehouseId" className="block text-sm font-medium text-gray-700">
+                                Armazém {formData.trackStock && <span className="text-red-500 font-bold">*</span>}
+                            </label>
+                            <select 
+                                name="warehouseId" 
+                                id="warehouseId" 
+                                value={formData.warehouseId} 
+                                onChange={handleChange} 
+                                className={`mt-1 w-full input-style ${errors.warehouseId ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : ''}`}
+                            >
+                                <option value="">Selecione um armazém</option>
                                 {warehouses.map(wh => <option key={wh.id} value={wh.id}>{wh.name} ({wh.type})</option>)}
                             </select>
+                            {errors.warehouseId && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.warehouseId}</p>}
                         </div>
 
                         {formData.trackStock && (

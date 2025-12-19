@@ -50,6 +50,7 @@ export interface Product {
   stockLevel?: number; // Only for goods
   lot?: string; // Only for goods
   expiryDate?: string; // Only for goods
+  createdAt: string;
 }
 
 export interface CartItem extends Product {

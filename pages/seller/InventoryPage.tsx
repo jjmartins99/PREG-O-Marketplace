@@ -99,6 +99,16 @@ const InventoryRow: React.FC<{
         rowBgClass = 'bg-orange-50 hover:bg-orange-100';
     }
 
+    const formatDate = (dateString: string) => {
+        if (!dateString) return 'N/D';
+        try {
+            const date = new Date(dateString);
+            return new Intl.DateTimeFormat('pt-PT').format(date);
+        } catch (e) {
+            return dateString;
+        }
+    };
+
     return (
         <tr className={`border-b ${rowBgClass} transition-colors duration-150`}>
             <td className="py-3 px-6 text-sm text-gray-700 flex items-center">
@@ -135,6 +145,9 @@ const InventoryRow: React.FC<{
                         <AlertTriangleIcon className="w-3 h-3 ml-1.5" />
                     )}
                 </span>
+            </td>
+            <td className="py-3 px-6 text-sm text-gray-700 whitespace-nowrap">
+                {formatDate(product.createdAt)}
             </td>
             <td className="py-3 px-6 text-sm">
                  <div className="relative">
@@ -199,7 +212,7 @@ export const InventoryPage: React.FC = () => {
 
     const showNotification = (message: string, type: 'success' | 'warning') => {
         setNotification({ message, type });
-        setTimeout(() => setNotification(null), 4000);
+        setTimeout(() => setNotification(null), 5000);
     };
 
     useEffect(() => {
@@ -374,11 +387,11 @@ export const InventoryPage: React.FC = () => {
 
     const handleExportCSV = () => {
         if (filteredProducts.length === 0) {
-            alert("Não há dados para exportar.");
+            showNotification("Não há dados para exportar com os filtros atuais.", "warning");
             return;
         }
 
-        const headers = ["Produto", "SKU", "Preço", "Armazém", "Stock Atual", "Lote", "Validade", "Estado"];
+        const headers = ["Produto", "SKU", "Preço", "Armazém", "Stock Atual", "Lote", "Validade", "Data de Criação", "Estado"];
         
         const csvRows = filteredProducts.map(p => {
             const name = `"${p.name.replace(/"/g, '""')}"`;
@@ -388,6 +401,7 @@ export const InventoryPage: React.FC = () => {
             const stock = p.stockLevel || 0;
             const lot = `"${(p.lot || '').replace(/"/g, '""')}"`;
             const expiry = `"${p.expiryDate || ''}"`;
+            const created = `"${p.createdAt || ''}"`;
             
             let status = "OK";
             if (stock === 0) status = "Sem Stock";
@@ -401,18 +415,22 @@ export const InventoryPage: React.FC = () => {
             
             const statusCol = `"${status}"`;
             
-            return [name, sku, price, warehouse, stock, lot, expiry, statusCol].join(",");
+            return [name, sku, price, warehouse, stock, lot, expiry, created, statusCol].join(",");
         });
 
-        const csvContent = [headers.join(","), ...csvRows].join("\n");
+        // Add UTF-8 BOM for Excel compatibility with special characters
+        const BOM = '\uFEFF';
+        const csvContent = BOM + [headers.join(","), ...csvRows].join("\n");
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `inventario_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `inventario_pregao_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        
+        showNotification(`Exportação concluída: ${filteredProducts.length} produtos exportados.`, "success");
     };
 
     const hasActiveFilters = searchQuery !== '' || warehouseFilter !== 'all' || expiryFilter !== 'all' || stockFilter !== 'all';
@@ -477,7 +495,7 @@ export const InventoryPage: React.FC = () => {
                             <div className="flex space-x-2 w-full md:w-auto">
                                 <button
                                     onClick={handleExportCSV}
-                                    className="flex-1 md:flex-none flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                    className="flex-1 md:flex-none flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all active:scale-95"
                                     title="Exportar lista filtrada para CSV"
                                 >
                                     <DownloadIcon className="w-5 h-5 md:mr-2" />
@@ -505,20 +523,20 @@ export const InventoryPage: React.FC = () => {
                                 onClick={() => { setExpiryFilter('all'); setCurrentPage(1); }} 
                             />
                             <FilterPill 
-                                label="Válidos" 
+                                label="Válido" 
                                 active={expiryFilter === 'valid'} 
                                 onClick={() => { setExpiryFilter('valid'); setCurrentPage(1); }}
                                 colorClass="text-green-700 bg-green-50 border-green-200"
                             />
                             <FilterPill 
-                                label="A Expirar" 
+                                label="A Expirar Brevemente" 
                                 active={expiryFilter === 'expiring_soon'} 
                                 onClick={() => { setExpiryFilter('expiring_soon'); setCurrentPage(1); }}
                                 count={counts.expiringSoon}
                                 colorClass="text-yellow-700 bg-yellow-50 border-yellow-200"
                             />
                             <FilterPill 
-                                label="Expirados" 
+                                label="Expirado" 
                                 active={expiryFilter === 'expired'} 
                                 onClick={() => { setExpiryFilter('expired'); setCurrentPage(1); }}
                                 count={counts.expired}
@@ -607,12 +625,13 @@ export const InventoryPage: React.FC = () => {
                                     <th className="py-3 px-6 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Stock</th>
                                     <th className="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Lote</th>
                                     <th className="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Validade</th>
+                                    <th className="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Criado em</th>
                                     <th className="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
                                 </tr>
                             </thead>
                             <tbody className="text-gray-600 text-sm font-light">
                                 {loading ? (
-                                    <tr><td colSpan={6} className="text-center py-6">A carregar inventário...</td></tr>
+                                    <tr><td colSpan={7} className="text-center py-6">A carregar inventário...</td></tr>
                                 ) : paginatedProducts.length > 0 ? (
                                    paginatedProducts.map(p => {
                                        // Check for same SKU in other warehouses/locations
@@ -637,7 +656,7 @@ export const InventoryPage: React.FC = () => {
                                        );
                                    })
                                 ) : (
-                                    <tr><td colSpan={6} className="text-center py-6">Nenhum produto encontrado.</td></tr>
+                                    <tr><td colSpan={7} className="text-center py-6">Nenhum produto encontrado.</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -645,20 +664,55 @@ export const InventoryPage: React.FC = () => {
                     {filteredProducts.length > 0 && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />}
                 </div>
 
+                {/* Toast Notification Container */}
                 {notification && (
-                    <div className={`fixed bottom-4 right-4 px-6 py-4 rounded-lg shadow-lg text-white z-50 flex items-center transition-all duration-500 transform translate-y-0 opacity-100 ${
-                        notification.type === 'warning' ? 'bg-yellow-500' : 'bg-green-600'
-                    }`}>
-                        {notification.type === 'warning' ? <AlertTriangleIcon className="w-6 h-6 mr-3" /> : <CheckCircleIcon className="w-6 h-6 mr-3" />}
-                        <div>
-                            <h4 className="font-bold">{notification.type === 'warning' ? 'Alerta de Stock' : 'Sucesso'}</h4>
-                            <p>{notification.message}</p>
+                    <div 
+                        className={`fixed top-4 right-4 max-w-sm w-full bg-white border-l-4 shadow-2xl rounded-r-lg p-4 z-[60] transform transition-all duration-300 animate-slide-in-right ${
+                            notification.type === 'warning' ? 'border-yellow-500' : 'border-green-500'
+                        }`}
+                        role="alert"
+                    >
+                        <div className="flex items-start">
+                            <div className="flex-shrink-0">
+                                {notification.type === 'warning' ? (
+                                    <AlertTriangleIcon className="h-5 w-5 text-yellow-500" />
+                                ) : (
+                                    <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                                )}
+                            </div>
+                            <div className="ml-3 flex-1">
+                                <p className={`text-sm font-bold ${
+                                    notification.type === 'warning' ? 'text-yellow-800' : 'text-green-800'
+                                }`}>
+                                    {notification.type === 'warning' ? 'Alerta' : 'Sucesso'}
+                                </p>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    {notification.message}
+                                </p>
+                            </div>
+                            <div className="ml-4 flex-shrink-0 flex">
+                                <button
+                                    onClick={() => setNotification(null)}
+                                    className="inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
+                                >
+                                    <XIcon className="h-5 w-5" />
+                                </button>
+                            </div>
                         </div>
-                        <button onClick={() => setNotification(null)} className="ml-4 hover:text-gray-200"><XIcon className="w-4 h-4" /></button>
                     </div>
                 )}
             </div>
             
+            <style>{`
+                @keyframes slide-in-right {
+                    0% { transform: translateX(100%); opacity: 0; }
+                    100% { transform: translateX(0); opacity: 1; }
+                }
+                .animate-slide-in-right {
+                    animation: slide-in-right 0.4s ease-out forwards;
+                }
+            `}</style>
+
             <AdjustStockModal 
                 product={selectedProduct} 
                 isOpen={isAdjustModalOpen} 

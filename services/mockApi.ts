@@ -33,14 +33,14 @@ const users: User[] = [
 ];
 
 let products: Product[] = [
-  { id: 'p1', name: 'Arroz Tio Lucas 25kg', description: 'Arroz agulha de alta qualidade.', sku: 'PROD001', price: 15000, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [{id: 'pkg1', name: 'Fardo', unit: 'FAR', conversionFactor: 4, price: 58000}], imageUrl: 'https://picsum.photos/seed/arroz/400/300', warehouseId: 'wh-main-general', stockLevel: 120, lot: 'LOTE2024A', expiryDate: '2025-12-31' },
-  { id: 'p2', name: 'Óleo Fula 1L', description: 'Óleo vegetal para cozinha.', sku: 'PROD002', price: 1200, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [{id: 'pkg2', name: 'Caixa', unit: 'CX', conversionFactor: 12, price: 14000}], imageUrl: 'https://picsum.photos/seed/oleo/400/300', warehouseId: 'wh-main-general', stockLevel: 300, lot: 'LOTE2024B', expiryDate: '2026-06-30' },
-  { id: 'p3', name: 'Serviço de Instalação', description: 'Instalação de equipamento standard (2 horas).', sku: 'SERV001', price: 25000, kind: ProductKind.SERVICE, trackStock: false, unit: 'HR', packaging: [], imageUrl: 'https://picsum.photos/seed/servico/400/300', warehouseId: 'wh-main-general' },
-  { id: 'p4', name: 'Sumo Compal 1L', description: 'Sumo de Laranja natural.', sku: 'PROD003', price: 900, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [{id: 'pkg3', name: 'Grade', unit: 'GRD', conversionFactor: 6, price: 5200}], imageUrl: 'https://picsum.photos/seed/sumo/400/300', warehouseId: 'wh-b1-store', stockLevel: 250, lot: 'LOTE2024C', expiryDate: '2025-03-01' },
-  { id: 'p5', name: 'Cimento Portland 50kg', description: 'Cimento para construção civil.', sku: 'PROD004', price: 4500, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [], imageUrl: 'https://picsum.photos/seed/cimento/400/300', warehouseId: 'wh-b1-store', stockLevel: 500 },
-  { id: 'p6', name: 'Consultoria de Negócios', description: 'Sessão de consultoria estratégica (1 hora).', sku: 'SERV002', price: 50000, kind: ProductKind.SERVICE, trackStock: false, unit: 'HR', packaging: [], imageUrl: 'https://picsum.photos/seed/consultoria/400/300', warehouseId: 'wh-main-general' },
-  { id: 'p7', name: 'Caixa de Ferramentas', description: 'Kit completo para reparações.', sku: 'PROD005', price: 35000, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [], imageUrl: 'https://picsum.photos/seed/ferramentas/400/300', warehouseId: 'wh-b2-store', stockLevel: 30 },
-  { id: 'p8', name: 'Lâmpada LED', description: 'Lâmpada de baixo consumo.', sku: 'PROD006', price: 1500, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [], imageUrl: 'https://picsum.photos/seed/lampada/400/300', warehouseId: 'wh-b1s-store', stockLevel: 200 },
+  { id: 'p1', name: 'Arroz Tio Lucas 25kg', description: 'Arroz agulha de alta qualidade.', sku: 'PROD001', price: 15000, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [{id: 'pkg1', name: 'Fardo', unit: 'FAR', conversionFactor: 4, price: 58000}], imageUrl: 'https://picsum.photos/seed/arroz/400/300', warehouseId: 'wh-main-general', stockLevel: 120, lot: 'LOTE2024A', expiryDate: '2025-12-31', createdAt: '2024-01-15' },
+  { id: 'p2', name: 'Óleo Fula 1L', description: 'Óleo vegetal para cozinha.', sku: 'PROD002', price: 1200, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [{id: 'pkg2', name: 'Caixa', unit: 'CX', conversionFactor: 12, price: 14000}], imageUrl: 'https://picsum.photos/seed/oleo/400/300', warehouseId: 'wh-main-general', stockLevel: 300, lot: 'LOTE2024B', expiryDate: '2026-06-30', createdAt: '2024-02-10' },
+  { id: 'p3', name: 'Serviço de Instalação', description: 'Instalação de equipamento standard (2 horas).', sku: 'SERV001', price: 25000, kind: ProductKind.SERVICE, trackStock: false, unit: 'HR', packaging: [], imageUrl: 'https://picsum.photos/seed/servico/400/300', warehouseId: 'wh-main-general', createdAt: '2024-03-05' },
+  { id: 'p4', name: 'Sumo Compal 1L', description: 'Sumo de Laranja natural.', sku: 'PROD003', price: 900, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [{id: 'pkg3', name: 'Grade', unit: 'GRD', conversionFactor: 6, price: 5200}], imageUrl: 'https://picsum.photos/seed/sumo/400/300', warehouseId: 'wh-b1-store', stockLevel: 250, lot: 'LOTE2024C', expiryDate: '2025-03-01', createdAt: '2024-04-12' },
+  { id: 'p5', name: 'Cimento Portland 50kg', description: 'Cimento para construção civil.', sku: 'PROD004', price: 4500, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [], imageUrl: 'https://picsum.photos/seed/cimento/400/300', warehouseId: 'wh-b1-store', stockLevel: 500, createdAt: '2024-05-20' },
+  { id: 'p6', name: 'Consultoria de Negócios', description: 'Sessão de consultoria estratégica (1 hora).', sku: 'SERV002', price: 50000, kind: ProductKind.SERVICE, trackStock: false, unit: 'HR', packaging: [], imageUrl: 'https://picsum.photos/seed/consultoria/400/300', warehouseId: 'wh-main-general', createdAt: '2024-06-15' },
+  { id: 'p7', name: 'Caixa de Ferramentas', description: 'Kit completo para reparações.', sku: 'PROD005', price: 35000, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [], imageUrl: 'https://picsum.photos/seed/ferramentas/400/300', warehouseId: 'wh-b2-store', stockLevel: 30, createdAt: '2024-07-01' },
+  { id: 'p8', name: 'Lâmpada LED', description: 'Lâmpada de baixo consumo.', sku: 'PROD006', price: 1500, kind: ProductKind.GOOD, trackStock: true, unit: 'UN', packaging: [], imageUrl: 'https://picsum.photos/seed/lampada/400/300', warehouseId: 'wh-b1s-store', stockLevel: 200, createdAt: '2024-08-10' },
 ];
 
 const deliveries: Delivery[] = [
@@ -142,26 +142,28 @@ const api = {
     return { data, total, page, limit };
   },
 
-  addProduct: async (productData: Omit<Product, 'id' | 'imageUrl' | 'packaging'>): Promise<Product> => {
+  addProduct: async (productData: Omit<Product, 'id' | 'imageUrl' | 'packaging' | 'createdAt'>): Promise<Product> => {
     await new Promise(res => setTimeout(res, 500));
-    // FIX: Added missing 'packaging' property to conform to the Product type.
     const newProduct: Product = {
       id: `p${products.length + 1}-${Math.random().toString(16).slice(2)}`,
       imageUrl: `https://picsum.photos/seed/${encodeURIComponent(productData.name)}/400/300`,
       packaging: [],
+      createdAt: new Date().toISOString().split('T')[0],
       ...productData,
     };
     products.unshift(newProduct);
     return embedWarehouse(newProduct);
   },
 
-  addMultipleProducts: async (productsData: Omit<Product, 'id' | 'imageUrl' | 'packaging'>[]): Promise<Product[]> => {
+  addMultipleProducts: async (productsData: Omit<Product, 'id' | 'imageUrl' | 'packaging' | 'createdAt'>[]): Promise<Product[]> => {
     await new Promise(res => setTimeout(res, 1000)); // Simulate network delay
+    const today = new Date().toISOString().split('T')[0];
     const newProducts: Product[] = productsData.map((productData, index) => ({
       id: `p${products.length + 1 + index}-${Math.random().toString(16).slice(2)}`,
       imageUrl: `https://picsum.photos/seed/${encodeURIComponent(productData.name)}/400/300`,
       ...productData,
       packaging: [], // Assuming no packaging from CSV for simplicity
+      createdAt: today,
     }));
     products.unshift(...newProducts);
     return newProducts.map(embedWarehouse);
@@ -272,6 +274,7 @@ const api = {
             stockLevel: quantity,
             lot: `TRANSF-${sourceProduct.lot || ''}`,
             expiryDate: sourceProduct.expiryDate,
+            createdAt: new Date().toISOString().split('T')[0],
         };
         products.unshift(newProductEntry);
     }
